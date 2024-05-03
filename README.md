@@ -16,7 +16,7 @@ cargo build --release
 ```
 
 ## Running the Application
-Once built, the executable can be located at `target/release/pixelloop`. To run the application, simply execute:
+Once built, the executable can be located at `target/release/pixel_loop`. To run the application, simply execute:
 ```
-target/release/pixelloop
+target/release/pixel_loop
 ```
