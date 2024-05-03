@@ -1,6 +1,5 @@
+use anyhow::{Context, Result};
 use std::time::Duration;
-
-use pixel_loop::pixel_loop_tao;
 
 mod pixel_loop;
 
@@ -26,32 +25,44 @@ impl Default for State {
     }
 }
 
-fn main() {
+fn main() -> Result<()> {
     let width = 640;
     let height = 480;
 
+    let context =
+        pixel_loop::init_tao_window("pixel loop", width, height).context("create tao window")?;
+    let surface =
+        pixel_loop::init_pixels(&context, width, height).context("initialize pixel surface")?;
+
     let state = State::default();
-    pixel_loop_tao(
+    pixel_loop::run_with_tao_and_pixels(
         state,
-        (width, height),
-        120,
-        |s, width, height| {
+        context,
+        surface,
+        |s, surface| {
             s.box_position.0 = s.box_position.0 + s.box_direction.0;
             s.box_position.1 = s.box_position.1 + s.box_direction.1;
-            if s.box_position.0 + s.box_size.0 as isize >= width as isize || s.box_position.0 < 0 {
+            if s.box_position.0 + s.box_size.0 as isize >= surface.width() as isize
+                || s.box_position.0 < 0
+            {
                 s.box_direction.0 = s.box_direction.0 * -1;
                 s.box_position.0 = s.box_position.0 + s.box_direction.0
             }
-            if s.box_position.1 + s.box_size.1 as isize >= height as isize || s.box_position.1 < 0 {
+            if s.box_position.1 + s.box_size.1 as isize >= surface.height() as isize
+                || s.box_position.1 < 0
+            {
                 s.box_direction.1 = s.box_direction.1 * -1;
                 s.box_position.1 = s.box_position.1 + s.box_direction.1
             }
 
             s.updates_called += 1;
+            Ok(())
             // println!("update");
         },
-        |s, dt, width, height, pixels| {
-            let buf = pixels.frame_mut();
+        |s, surface, dt| {
+            let width = surface.width();
+            let height = surface.height();
+            let buf = surface.frame_mut();
 
             // Clear background
             for y in 0..height {
@@ -83,6 +94,10 @@ fn main() {
                 s.renders_called = 0;
                 s.time_passed = Duration::default();
             }
+
+            surface.render()?;
+
+            Ok(())
         },
     );
 }

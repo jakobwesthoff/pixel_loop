@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.82"
 pixels = "0.13.0"
 tao = { version = "0.27.1", features = ["rwh_05"], default-features = false }
