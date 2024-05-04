@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use pixel_loop::{Color, DrawingSurface};
 use std::time::Duration;
 use tao::event::{ElementState, Event, MouseButton, WindowEvent};
 
@@ -12,7 +13,7 @@ struct State {
     box_direction: (isize, isize),
     box_size: (usize, usize),
     button_pressed: bool,
-    cursor_position: (usize, usize),
+    cursor_position: (u32, u32),
 }
 
 impl Default for State {
@@ -33,12 +34,11 @@ impl Default for State {
 fn main() -> Result<()> {
     let width = 640;
     let height = 480;
-    let scale = 1;
 
     let context =
         pixel_loop::init_tao_window("pixel loop", width, height).context("create tao window")?;
-    let surface = pixel_loop::init_pixels(&context, width / scale, height / scale)
-        .context("initialize pixel surface")?;
+    let surface =
+        pixel_loop::init_pixels(&context, width, height).context("initialize pixel surface")?;
 
     let state = State::default();
 
@@ -56,18 +56,10 @@ fn main() -> Result<()> {
         |s, surface, dt| {
             let width = surface.width();
             let height = surface.height();
-            let buf = surface.frame_mut();
 
             // RENDER BEGIN
-            for y in 0..height {
-                for x in 0..width {
-                    let i = ((y * width + x) * 4) as usize;
-                    buf[i + 0] = 0;
-                    buf[i + 1] = 0;
-                    buf[i + 2] = 0;
-                    buf[i + 3] = 0;
-                }
-            }
+            surface.clear_screen(&Color::from_rgb(255, 0, 0));
+            surface.filled_rect(40, 40, 100, 100, &Color::from_rgb(255, 255, 0));
             // RENDER END
 
             s.renders_called += 1;
@@ -80,7 +72,7 @@ fn main() -> Result<()> {
                 s.time_passed = Duration::default();
             }
 
-            surface.render()?;
+            surface.blit()?;
 
             Ok(())
         },
@@ -101,10 +93,8 @@ fn main() -> Result<()> {
                         }
                     }
                     WindowEvent::CursorMoved { position, .. } => {
-                        let position = (position.x as f32, position.y as f32);
                         let pixel_position = surface
-                            .pixels()
-                            .window_pos_to_pixel(position)
+                            .physical_pos_to_surface_pos(position.x, position.y)
                             .unwrap_or((0, 0));
                         s.cursor_position = pixel_position;
                     }
