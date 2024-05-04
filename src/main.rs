@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use std::time::Duration;
+use tao::event::{ElementState, Event, MouseButton, WindowEvent};
 
 mod pixel_loop;
 
@@ -10,6 +11,8 @@ struct State {
     box_position: (isize, isize),
     box_direction: (isize, isize),
     box_size: (usize, usize),
+    button_pressed: bool,
+    cursor_position: (usize, usize),
 }
 
 impl Default for State {
@@ -21,6 +24,8 @@ impl Default for State {
             box_position: Default::default(),
             box_direction: (2, 2),
             box_size: (50, 50),
+            button_pressed: false,
+            cursor_position: (0, 0),
         }
     }
 }
@@ -28,62 +33,42 @@ impl Default for State {
 fn main() -> Result<()> {
     let width = 640;
     let height = 480;
+    let scale = 1;
 
     let context =
         pixel_loop::init_tao_window("pixel loop", width, height).context("create tao window")?;
-    let surface =
-        pixel_loop::init_pixels(&context, width, height).context("initialize pixel surface")?;
+    let surface = pixel_loop::init_pixels(&context, width / scale, height / scale)
+        .context("initialize pixel surface")?;
 
     let state = State::default();
+
     pixel_loop::run_with_tao_and_pixels(
         state,
         context,
         surface,
         |s, surface| {
-            s.box_position.0 = s.box_position.0 + s.box_direction.0;
-            s.box_position.1 = s.box_position.1 + s.box_direction.1;
-            if s.box_position.0 + s.box_size.0 as isize >= surface.width() as isize
-                || s.box_position.0 < 0
-            {
-                s.box_direction.0 = s.box_direction.0 * -1;
-                s.box_position.0 = s.box_position.0 + s.box_direction.0
-            }
-            if s.box_position.1 + s.box_size.1 as isize >= surface.height() as isize
-                || s.box_position.1 < 0
-            {
-                s.box_direction.1 = s.box_direction.1 * -1;
-                s.box_position.1 = s.box_position.1 + s.box_direction.1
-            }
-
             s.updates_called += 1;
+            // UPDATE BEGIN
+            //
+            // UPDATE END
             Ok(())
-            // println!("update");
         },
         |s, surface, dt| {
             let width = surface.width();
             let height = surface.height();
             let buf = surface.frame_mut();
 
-            // Clear background
+            // RENDER BEGIN
             for y in 0..height {
                 for x in 0..width {
                     let i = ((y * width + x) * 4) as usize;
                     buf[i + 0] = 0;
                     buf[i + 1] = 0;
                     buf[i + 2] = 0;
-                    buf[i + 3] = 255;
+                    buf[i + 3] = 0;
                 }
             }
-
-            for y in s.box_position.1 as usize..s.box_position.1 as usize + s.box_size.1 {
-                for x in s.box_position.0 as usize..s.box_position.0 as usize + s.box_size.0 {
-                    let i = ((y * width as usize + x) * 4) as usize;
-                    buf[i + 0] = 255;
-                    buf[i + 1] = 255;
-                    buf[i + 2] = 0;
-                    buf[i + 3] = 255;
-                }
-            }
+            // RENDER END
 
             s.renders_called += 1;
             s.time_passed += dt;
@@ -97,6 +82,36 @@ fn main() -> Result<()> {
 
             surface.render()?;
 
+            Ok(())
+        },
+        |s, surface, _, event| {
+            match event {
+                Event::WindowEvent {
+                    event: win_event, ..
+                } => match win_event {
+                    WindowEvent::MouseInput {
+                        button: MouseButton::Left,
+                        state,
+                        ..
+                    } => {
+                        if state == &ElementState::Pressed {
+                            s.button_pressed = true;
+                        } else {
+                            s.button_pressed = false;
+                        }
+                    }
+                    WindowEvent::CursorMoved { position, .. } => {
+                        let position = (position.x as f32, position.y as f32);
+                        let pixel_position = surface
+                            .pixels()
+                            .window_pos_to_pixel(position)
+                            .unwrap_or((0, 0));
+                        s.cursor_position = pixel_position;
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
             Ok(())
         },
     );

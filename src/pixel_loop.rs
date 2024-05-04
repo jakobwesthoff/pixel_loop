@@ -3,11 +3,13 @@ use pixels::{Pixels, SurfaceTexture};
 use std::time::{Duration, Instant};
 use tao::dpi::LogicalSize;
 use tao::event::{Event, WindowEvent};
-use tao::event_loop::{ControlFlow, EventLoop};
+use tao::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
 use tao::window::{Window, WindowBuilder};
 
 type UpdateFn<State, Surface> = fn(&mut State, &mut Surface) -> Result<()>;
 type RenderFn<State, Surface> = fn(&mut State, &mut Surface, Duration) -> Result<()>;
+type TaoEventFn<State, Surface> =
+    fn(&mut State, &mut Surface, &EventLoopWindowTarget<()>, event: &Event<()>) -> Result<()>;
 
 struct PixelLoop<State, Surface> {
     accumulator: Duration,
@@ -108,6 +110,10 @@ impl PixelsSurface {
             .context("letting pixels lib blit to screen")?;
         Ok(())
     }
+
+    pub fn pixels(&self) -> &Pixels {
+        &self.pixels
+    }
 }
 
 pub struct TaoContext {
@@ -153,18 +159,28 @@ pub fn run_with_tao_and_pixels<State: 'static>(
     surface: PixelsSurface,
     update: UpdateFn<State, PixelsSurface>,
     render: RenderFn<State, PixelsSurface>,
+    handle_event: TaoEventFn<State, PixelsSurface>,
 ) -> ! {
     let mut pixel_loop = PixelLoop::new(120, state, surface, update, render);
-    context
-        .event_loop
-        .run(move |event, _, control_flow| match event {
+    context.event_loop.run(move |event, window, control_flow| {
+        handle_event(
+            &mut pixel_loop.state,
+            &mut pixel_loop.surface,
+            window,
+            &event,
+        )
+        .context("handle user events")
+        .unwrap();
+        match event {
             Event::MainEventsCleared => {
                 pixel_loop
                     .next_loop()
                     .context("run next pixel loop")
                     .unwrap();
             }
-            Event::WindowEvent { event, .. } => match event {
+            Event::WindowEvent {
+                event: win_event, ..
+            } => match win_event {
                 WindowEvent::CloseRequested => {
                     *control_flow = ControlFlow::Exit;
                 }
@@ -172,5 +188,6 @@ pub fn run_with_tao_and_pixels<State: 'static>(
             },
 
             _ => {}
-        });
+        }
+    });
 }
