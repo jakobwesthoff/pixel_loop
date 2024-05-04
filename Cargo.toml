@@ -9,3 +9,8 @@ edition = "2021"
 anyhow = "1.0.82"
 pixels = "0.13.0"
 tao = { version = "0.27.1", features = ["rwh_05"], default-features = false }
+
+[profile.dev]
+opt-level = 1
+[profile.dev.package."*"]
+opt-level = 3
