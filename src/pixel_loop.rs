@@ -123,7 +123,7 @@ pub trait Canvas {
     fn set(&mut self, x: u32, y: u32, color: &Color);
     fn set_range(&mut self, range: Range<usize>, color: &Color);
     fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)>;
-    fn physical_pos_to_surface_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
+    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
 
     fn clear_screen(&mut self, color: &Color) {
         self.set_range(0..(self.height() * self.width()) as usize, &color);
@@ -192,7 +192,7 @@ impl Canvas for PixelsCanvas {
         }
     }
 
-    fn physical_pos_to_surface_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
+    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
         if let Ok((x, y)) = self.pixels.window_pos_to_pixel((x as f32, y as f32)) {
             Some((x as u32, y as u32))
         } else {

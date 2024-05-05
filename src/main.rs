@@ -37,29 +37,29 @@ fn main() -> Result<()> {
 
     let context =
         pixel_loop::init_tao_window("pixel loop", width, height).context("create tao window")?;
-    let surface =
-        pixel_loop::init_pixels(&context, width, height).context("initialize pixel surface")?;
+    let canvas =
+        pixel_loop::init_pixels(&context, width, height).context("initialize pixel canvas")?;
 
     let state = State::default();
 
     pixel_loop::run_with_tao_and_pixels(
         state,
         context,
-        surface,
-        |s, surface| {
+        canvas,
+        |s, canvas| {
             s.updates_called += 1;
             // UPDATE BEGIN
             //
             // UPDATE END
             Ok(())
         },
-        |s, surface, dt| {
-            let width = surface.width();
-            let height = surface.height();
+        |s, canvas, dt| {
+            let width = canvas.width();
+            let height = canvas.height();
 
             // RENDER BEGIN
-            surface.clear_screen(&Color::from_rgb(255, 0, 0));
-            surface.filled_rect(40, 40, 100, 100, &Color::from_rgb(255, 255, 0));
+            canvas.clear_screen(&Color::from_rgb(255, 0, 0));
+            canvas.filled_rect(40, 40, 100, 100, &Color::from_rgb(255, 255, 0));
             // RENDER END
 
             s.renders_called += 1;
@@ -72,11 +72,11 @@ fn main() -> Result<()> {
                 s.time_passed = Duration::default();
             }
 
-            surface.blit()?;
+            canvas.blit()?;
 
             Ok(())
         },
-        |s, surface, _, event| {
+        |s, canvas, _, event| {
             match event {
                 Event::WindowEvent {
                     event: win_event, ..
@@ -93,8 +93,8 @@ fn main() -> Result<()> {
                         }
                     }
                     WindowEvent::CursorMoved { position, .. } => {
-                        let pixel_position = surface
-                            .physical_pos_to_surface_pos(position.x, position.y)
+                        let pixel_position = canvas
+                            .physical_pos_to_canvas_pos(position.x, position.y)
                             .unwrap_or((0, 0));
                         s.cursor_position = pixel_position;
                     }
