@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use pixel_loop::{Color, DrawingSurface};
+use pixel_loop::{Color, Canvas};
 use std::time::Duration;
 use tao::event::{ElementState, Event, MouseButton, WindowEvent};
 
