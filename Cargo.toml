@@ -1,9 +1,17 @@
 [package]
 name = "pixel_loop"
+authors = ["Jakob Westhoff <jakob@westhoffswelt.de>"]
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+name = "pixel_loop"
+path = "src/pixel_loop/lib.rs"
+
+[[bin]]
+name = "pixel_sand"
+path = "src/pixel_sand/main.rs"
+
 
 [dependencies]
 anyhow = "1.0.82"

@@ -89,6 +89,7 @@ pub fn run<State, CanvasImpl: Canvas>(
     }
 }
 
+#[derive(Clone, PartialEq)]
 pub struct Color {
     bytes: [u8; 4],
 }
