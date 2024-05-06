@@ -18,7 +18,7 @@ struct PixelLoop<State, CanvasImpl: Canvas> {
     last_time: Instant,
     update_timestep: Duration,
     state: State,
-    surface: CanvasImpl,
+    canvas: CanvasImpl,
     update: UpdateFn<State, CanvasImpl>,
     render: RenderFn<State, CanvasImpl>,
 }
@@ -30,7 +30,7 @@ where
     pub fn new(
         update_fps: usize,
         state: State,
-        surface: CanvasImpl,
+        canvas: CanvasImpl,
         update: UpdateFn<State, CanvasImpl>,
         render: RenderFn<State, CanvasImpl>,
     ) -> Self {
@@ -46,7 +46,7 @@ where
                 (1_000_000_000f64 / update_fps as f64).round() as u64
             ),
             state,
-            surface,
+            canvas,
             update,
             render,
         }
@@ -66,11 +66,11 @@ where
         }
 
         while self.accumulator > self.update_timestep {
-            (self.update)(&mut self.state, &mut self.surface)?;
+            (self.update)(&mut self.state, &mut self.canvas)?;
             self.accumulator -= self.update_timestep;
         }
 
-        (self.render)(&mut self.state, &mut self.surface, dt)?;
+        (self.render)(&mut self.state, &mut self.canvas, dt)?;
 
         self.accumulator += dt;
         Ok(())
@@ -79,11 +79,11 @@ where
 
 pub fn run<State, CanvasImpl: Canvas>(
     state: State,
-    surface: CanvasImpl,
+    canvas: CanvasImpl,
     update: UpdateFn<State, CanvasImpl>,
     render: RenderFn<State, CanvasImpl>,
 ) -> Result<()> {
-    let mut pixel_loop = PixelLoop::new(120, state, surface, update, render);
+    let mut pixel_loop = PixelLoop::new(120, state, canvas, update, render);
     loop {
         pixel_loop.next_loop().context("run next pixel loop")?;
     }
@@ -241,16 +241,16 @@ pub fn init_pixels(context: &TaoContext, width: u32, height: u32) -> Result<Pixe
 pub fn run_with_tao_and_pixels<State: 'static>(
     state: State,
     context: TaoContext,
-    surface: PixelsCanvas,
+    canvas: PixelsCanvas,
     update: UpdateFn<State, PixelsCanvas>,
     render: RenderFn<State, PixelsCanvas>,
     handle_event: TaoEventFn<State, PixelsCanvas>,
 ) -> ! {
-    let mut pixel_loop = PixelLoop::new(120, state, surface, update, render);
+    let mut pixel_loop = PixelLoop::new(120, state, canvas, update, render);
     context.event_loop.run(move |event, window, control_flow| {
         handle_event(
             &mut pixel_loop.state,
-            &mut pixel_loop.surface,
+            &mut pixel_loop.canvas,
             window,
             &event,
         )
