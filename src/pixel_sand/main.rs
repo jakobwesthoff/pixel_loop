@@ -1,13 +1,12 @@
 use anyhow::{Context, Result};
 use pixel_loop::{Canvas, Color, HslColor};
-use std::collections::HashSet;
 use std::time::Duration;
 use tao::event::{ElementState, Event, MouseButton, WindowEvent};
 
 #[derive(Clone, PartialEq)]
 struct Sand {
     color: Color,
-    velocity: f32,
+    acceleration: f32,
     speed: f32,
     max_speed: f32,
 }
@@ -15,23 +14,38 @@ struct Sand {
 impl Sand {
     fn new<R: rand::Rng + ?Sized>(rand: &mut R, base_color: &Color) -> Self {
         let color = Self::sand_color_variation(rand, base_color);
+        // @TODO: Fix that something not moving is assumed to be not updated any
+        // more. And then change this one to * 0.3 + 0.3
+        let acceleration = rand.gen::<f32>() * 0.3 + 1.0;
+        let speed = rand.gen::<f32>() * 1.3 + 0.2;
+        let max_speed = rand.gen::<f32>() * 2.0 + 2.0;
         Self {
             color,
-            velocity: 0.1,
-            speed: 1.0,
-            max_speed: 5.0,
+            acceleration,
+            speed,
+            max_speed,
         }
     }
 
     fn update_state(&mut self) {
-        self.speed += self.velocity;
+        self.speed += self.acceleration;
         if self.speed > self.max_speed {
             self.speed = self.max_speed;
         }
     }
 
-    fn get_steps(&self) -> usize {
-        self.speed.round() as usize
+    fn get_steps<R: rand::Rng + ?Sized>(&self, rand: &mut R) -> usize {
+        let whole_part = self.speed.floor();
+        let fractional = self.speed - whole_part;
+
+        // Use the fractional part as the probability to execute the movement
+        // step.
+        // No idea if this is good idea, but seems to work ;)
+        if rand.gen::<f32>() < fractional {
+            (whole_part + 1.0) as usize
+        } else {
+            whole_part as usize
+        }
     }
 
     fn sand_color_variation<R: rand::Rng + ?Sized>(rand: &mut R, color: &Color) -> Color {
@@ -60,10 +74,10 @@ impl Particle {
         }
     }
 
-    fn get_steps(&self) -> usize {
+    fn get_steps<R: rand::Rng + ?Sized>(&self, rand: &mut R) -> usize {
         match self {
             Particle::Empty => 0,
-            Particle::Sand(ref sand) => sand.get_steps(),
+            Particle::Sand(ref sand) => sand.get_steps(rand),
         }
     }
 }
@@ -170,12 +184,12 @@ impl ParticleGrid {
         }
     }
 
-    fn update_particles(&mut self) {
+    fn update_particles<R: rand::Rng + ?Sized>(&mut self, rand: &mut R) {
         let mut particles_to_update = std::mem::replace(&mut self.particles_to_update, Vec::new());
         particles_to_update.sort_unstable();
         for i in particles_to_update.iter().rev().cloned() {
             self.particles[i].update_state();
-            let steps = self.particles[i].get_steps();
+            let steps = self.particles[i].get_steps(rand);
 
             let mut working_index = i;
             let mut needs_further_update = false;
@@ -253,7 +267,7 @@ fn main() -> Result<()> {
                 );
             }
 
-            s.grid.update_particles();
+            s.grid.update_particles(&mut e.rand);
             // UPDATE END
             Ok(())
         },
