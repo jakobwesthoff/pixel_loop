@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use pixel_loop::{Canvas, Color};
+use pixel_loop::{Canvas, Color, HslColor};
 use std::time::Duration;
 use tao::event::{ElementState, Event, MouseButton, WindowEvent};
 
@@ -11,18 +11,17 @@ struct Sand {
     max_speed: f32,
 }
 
-impl Default for Sand {
-    fn default() -> Self {
+impl Sand {
+    fn new<R: rand::Rng + ?Sized>(rand: &mut R, base_color: &Color) -> Self {
+        let color = Self::sand_color_variation(rand, base_color);
         Self {
-            color: Color::from_rgb(255, 255, 0),
+            color,
             velocity: 0.1,
             speed: 1.0,
             max_speed: 5.0,
         }
     }
-}
 
-impl Sand {
     fn update_state(&mut self) {
         self.speed += self.velocity;
         if self.speed > self.max_speed {
@@ -32,6 +31,17 @@ impl Sand {
 
     fn get_steps(&self) -> usize {
         self.speed.round() as usize
+    }
+
+    fn sand_color_variation<R: rand::Rng + ?Sized>(rand: &mut R, color: &Color) -> Color {
+        let hsl = color.as_hsl();
+
+        let range = 0.1;
+
+        let ds = range * rand.gen::<f64>() - range / 2.0;
+        let dl = range * rand.gen::<f64>() - range / 2.0;
+
+        HslColor::new(hsl.h, hsl.s + ds, hsl.l + dl).into()
     }
 }
 
@@ -205,15 +215,16 @@ fn main() -> Result<()> {
         state,
         context,
         canvas,
-        |s, canvas| {
+        |e, s, canvas| {
             s.updates_called += 1;
+            let sand_color = Color::from_rgb(226, 202, 118);
             // UPDATE BEGIN
             if s.button_pressed {
                 s.grid.set_circle(
                     s.cursor_position.0,
                     s.cursor_position.1,
                     10,
-                    Particle::Sand(Sand::default()),
+                    Particle::Sand(Sand::new(&mut e.rand, &sand_color)),
                 );
             }
 
@@ -221,7 +232,7 @@ fn main() -> Result<()> {
             // UPDATE END
             Ok(())
         },
-        |s, canvas, dt| {
+        |e, s, canvas, dt| {
             let width = canvas.width();
             let height = canvas.height();
 
@@ -243,7 +254,7 @@ fn main() -> Result<()> {
 
             Ok(())
         },
-        |s, canvas, _, event| {
+        |e, s, canvas, _, event| {
             match event {
                 Event::WindowEvent {
                     event: win_event, ..

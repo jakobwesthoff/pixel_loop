@@ -1,16 +1,42 @@
 use anyhow::{Context, Result};
 use pixels::{Pixels, SurfaceTexture};
+use rand::SeedableRng;
+use rand_xoshiro::Xoshiro256PlusPlus;
 use std::ops::Range;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tao::dpi::LogicalSize;
 use tao::event::{Event, WindowEvent};
 use tao::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
 use tao::window::{Window, WindowBuilder};
 
-type UpdateFn<State, CanvasImpl> = fn(&mut State, &mut CanvasImpl) -> Result<()>;
-type RenderFn<State, CanvasImpl> = fn(&mut State, &mut CanvasImpl, Duration) -> Result<()>;
-type TaoEventFn<State, CanvasImpl> =
-    fn(&mut State, &mut CanvasImpl, &EventLoopWindowTarget<()>, event: &Event<()>) -> Result<()>;
+type UpdateFn<State, CanvasImpl> = fn(&mut EngineState, &mut State, &mut CanvasImpl) -> Result<()>;
+type RenderFn<State, CanvasImpl> =
+    fn(&mut EngineState, &mut State, &mut CanvasImpl, Duration) -> Result<()>;
+type TaoEventFn<State, CanvasImpl> = fn(
+    &mut EngineState,
+    &mut State,
+    &mut CanvasImpl,
+    &EventLoopWindowTarget<()>,
+    event: &Event<()>,
+) -> Result<()>;
+
+// @TODO: Make generic over Rng trait
+pub struct EngineState {
+    pub rand: Xoshiro256PlusPlus,
+}
+
+impl Default for EngineState {
+    fn default() -> Self {
+        let now = Instant::now();
+        let micros = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_micros();
+        Self {
+            rand: Xoshiro256PlusPlus::seed_from_u64(micros as u64),
+        }
+    }
+}
 
 struct PixelLoop<State, CanvasImpl: Canvas> {
     accumulator: Duration,
@@ -18,6 +44,7 @@ struct PixelLoop<State, CanvasImpl: Canvas> {
     last_time: Instant,
     update_timestep: Duration,
     state: State,
+    engine_state: EngineState,
     canvas: CanvasImpl,
     update: UpdateFn<State, CanvasImpl>,
     render: RenderFn<State, CanvasImpl>,
@@ -45,6 +72,7 @@ where
             update_timestep: Duration::from_nanos(
                 (1_000_000_000f64 / update_fps as f64).round() as u64
             ),
+            engine_state: EngineState::default(),
             state,
             canvas,
             update,
@@ -66,11 +94,16 @@ where
         }
 
         while self.accumulator > self.update_timestep {
-            (self.update)(&mut self.state, &mut self.canvas)?;
+            (self.update)(&mut self.engine_state, &mut self.state, &mut self.canvas)?;
             self.accumulator -= self.update_timestep;
         }
 
-        (self.render)(&mut self.state, &mut self.canvas, dt)?;
+        (self.render)(
+            &mut self.engine_state,
+            &mut self.state,
+            &mut self.canvas,
+            dt,
+        )?;
 
         self.accumulator += dt;
         Ok(())
@@ -152,6 +185,115 @@ impl Color {
             )
         };
         byte_slice
+    }
+
+    pub fn as_hsl(&self) -> HslColor {
+        // Taken and converted from: https://stackoverflow.com/a/9493060
+        let r = self.r as f64 / 255.0;
+        let g = self.g as f64 / 255.0;
+        let b = self.b as f64 / 255.0;
+        let vmax = r.max(g.max(b));
+        let vmin = r.min(g.min(b));
+        let l = (vmax + vmin) / 2.0;
+
+        if vmax == vmin {
+            return HslColor::new(0.0, 0.0, l); // achromatic
+        }
+
+        let d = vmax - vmin;
+        let s = if l > 0.5 {
+            d / (2.0 - vmax - vmin)
+        } else {
+            d / (vmax + vmin)
+        };
+
+        let mut h = (vmax + vmin) / 2.0;
+
+        if vmax == r {
+            h = (g - b) / d;
+            if g < b {
+                h += 6.0
+            }
+        }
+
+        if vmax == g {
+            h = (b - r) / d + 2.0;
+        }
+
+        if vmax == b {
+            h = (r - g) / d + 4.0;
+        }
+
+        h /= 6.0;
+
+        HslColor::new(h, s, l)
+    }
+}
+
+impl From<HslColor> for Color {
+    fn from(v: HslColor) -> Self {
+        // Taken and converted from: https://stackoverflow.com/a/9493060
+        fn hue_to_rgb(p: f64, q: f64, t: f64) -> f64 {
+            let mut t = t;
+            if t < 0f64 {
+                t += 1f64
+            };
+            if t > 1f64 {
+                t -= 1f64
+            };
+            if t < 1f64 / 6f64 {
+                return p + (q - p) * 6f64 * t;
+            }
+            if t < 1f64 / 2f64 {
+                return q;
+            }
+            if t < 2f64 / 3f64 {
+                return p + (q - p) * (2f64 / 3f64 - t) * 6f64;
+            };
+            return p;
+        }
+
+        let r;
+        let g;
+        let b;
+
+        let h = v.h;
+        let s = v.s;
+        let l = v.l;
+
+        if s == 0.0 {
+            r = l;
+            g = l;
+            b = l;
+        } else {
+            let q = if l < 0.5 {
+                l * (1.0 + s)
+            } else {
+                l + s - l * s
+            };
+            let p = 2.0 * l - q;
+
+            r = hue_to_rgb(p, q, h + 1f64 / 3f64);
+            g = hue_to_rgb(p, q, h);
+            b = hue_to_rgb(p, q, h - 1f64 / 3f64);
+        }
+        Color::from_rgb(
+            (r * 255.0).round() as u8,
+            (g * 255.0).round() as u8,
+            (b * 255.0).round() as u8,
+        )
+    }
+}
+
+pub struct HslColor {
+    pub h: f64,
+    pub s: f64,
+    pub l: f64,
+}
+
+impl HslColor {
+    pub fn new(h: f64, s: f64, l: f64) -> Self {
+        Self { h, s, l }
     }
 }
 
@@ -294,6 +436,7 @@ pub fn run_with_tao_and_pixels<State: 'static>(
     let mut pixel_loop = PixelLoop::new(120, state, canvas, update, render);
     context.event_loop.run(move |event, window, control_flow| {
         handle_event(
+            &mut pixel_loop.engine_state,
             &mut pixel_loop.state,
             &mut pixel_loop.canvas,
             window,
