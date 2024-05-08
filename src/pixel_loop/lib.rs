@@ -22,7 +22,7 @@ type TaoEventFn<State, CanvasImpl> = fn(
 
 // @TODO: Make generic over Rng trait
 pub struct EngineState {
-    pub rand: Xoshiro256PlusPlus,
+    pub rand: Box<dyn rand::RngCore>,
 }
 
 impl Default for EngineState {
@@ -33,7 +33,7 @@ impl Default for EngineState {
             .unwrap()
             .as_micros();
         Self {
-            rand: Xoshiro256PlusPlus::seed_from_u64(micros as u64),
+            rand: Box::new(Xoshiro256PlusPlus::seed_from_u64(micros as u64)),
         }
     }
 }
