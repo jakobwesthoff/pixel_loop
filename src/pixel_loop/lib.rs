@@ -226,13 +226,16 @@ impl Color {
 
         h /= 6.0;
 
-        HslColor::new(h, s, l)
+        // The color conversion moves every value into the [0,1] number space.
+        // But we want the hue in [0,360], s in [0,100] and l in [0,100]
+        HslColor::new(h * 360f64, s * 100f64, l * 100f64)
     }
 }
 
 impl From<HslColor> for Color {
     fn from(v: HslColor) -> Self {
         // Taken and converted from: https://stackoverflow.com/a/9493060
+
         fn hue_to_rgb(p: f64, q: f64, t: f64) -> f64 {
             let mut t = t;
             if t < 0f64 {
@@ -257,9 +260,11 @@ impl From<HslColor> for Color {
         let g;
         let b;
 
-        let h = v.h;
-        let s = v.s;
-        let l = v.l;
+        // The input for this algorithm expects all the h,s and l values in the
+        // range [0,1].
+        let h = v.h / 360f64;
+        let s = v.s / 100f64;
+        let l = v.l / 100f64;
 
         if s == 0.0 {
             r = l;
@@ -286,9 +291,9 @@ impl From<HslColor> for Color {
 }
 
 pub struct HslColor {
-    pub h: f64,
-    pub s: f64,
-    pub l: f64,
+    pub h: f64, // Hue in [0,360]
+    pub s: f64, // Saturation in [0,100]
+    pub l: f64, // Lightness in [0,100]
 }
 
 impl HslColor {
