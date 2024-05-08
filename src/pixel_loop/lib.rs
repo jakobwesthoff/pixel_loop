@@ -20,7 +20,6 @@ type TaoEventFn<State, CanvasImpl> = fn(
     event: &Event<()>,
 ) -> Result<()>;
 
-// @TODO: Make generic over Rng trait
 pub struct EngineState {
     pub rand: Box<dyn rand::RngCore>,
 }
@@ -30,7 +29,7 @@ impl Default for EngineState {
         let now = Instant::now();
         let micros = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .unwrap()
+            .expect("If time since UNIX_EPOCH is 0 there is something wrong?")
             .as_micros();
         Self {
             rand: Box::new(Xoshiro256PlusPlus::seed_from_u64(micros as u64)),

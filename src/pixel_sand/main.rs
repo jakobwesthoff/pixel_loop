@@ -108,7 +108,14 @@ impl ParticleGrid {
         self.particles[(y * self.width + x) as usize] = particle;
     }
 
-    fn set_circle(&mut self, cx: u32, cy: u32, r: u32, particle: Particle) {
+    fn add_sand_particles<R: rand::Rng + ?Sized>(
+        &mut self,
+        rand: &mut R,
+        cx: u32,
+        cy: u32,
+        r: u32,
+        base_color: &Color,
+    ) {
         let r = r as i64;
 
         for dy in -r..=r {
@@ -121,7 +128,11 @@ impl ParticleGrid {
                 }
 
                 if dx * dx + dy * dy <= r * r {
-                    self.set_particle(x as u32, y as u32, particle.clone());
+                    let sand_propability = 0.3;
+                    if rand.gen::<f64>() < sand_propability {
+                        let particle = Particle::Sand(Sand::new(rand, base_color));
+                        self.set_particle(x as u32, y as u32, particle);
+                    }
                 }
             }
         }
@@ -220,11 +231,12 @@ fn main() -> Result<()> {
             let sand_color = Color::from_rgb(226, 202, 118);
             // UPDATE BEGIN
             if s.button_pressed {
-                s.grid.set_circle(
+                s.grid.add_sand_particles(
+                    &mut e.rand,
                     s.cursor_position.0,
                     s.cursor_position.1,
                     10,
-                    Particle::Sand(Sand::new(&mut e.rand, &sand_color)),
+                    &sand_color,
                 );
             }
 
