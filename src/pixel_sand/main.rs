@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use pixel_loop::{Canvas, Color, HslColor};
+use std::collections::HashSet;
 use std::time::Duration;
 use tao::event::{ElementState, Event, MouseButton, WindowEvent};
 
@@ -69,6 +70,7 @@ impl Particle {
 
 struct ParticleGrid {
     particles: Vec<Particle>,
+    particles_to_update: Vec<usize>,
     width: u32,
     height: u32,
 }
@@ -77,6 +79,7 @@ impl ParticleGrid {
     fn new(width: u32, height: u32) -> Self {
         Self {
             particles: vec![Particle::Empty; (width * height) as usize],
+            particles_to_update: vec![],
             width,
             height,
         }
@@ -104,8 +107,10 @@ impl ParticleGrid {
             );
             return;
         }
+        let index = (y * self.width + x) as usize;
 
-        self.particles[(y * self.width + x) as usize] = particle;
+        self.particles[index] = particle;
+        self.particles_to_update.push(index);
     }
 
     fn add_sand_particles<R: rand::Rng + ?Sized>(
@@ -166,18 +171,26 @@ impl ParticleGrid {
     }
 
     fn update_particles(&mut self) {
-        for i in (0..self.particles.len()).rev() {
+        let mut particles_to_update = std::mem::replace(&mut self.particles_to_update, Vec::new());
+        particles_to_update.sort_unstable();
+        for i in particles_to_update.iter().rev().cloned() {
             self.particles[i].update_state();
             let steps = self.particles[i].get_steps();
 
             let mut working_index = i;
+            let mut needs_further_update = false;
             for _ in 0..steps {
                 let new_working_index = self.execute_step(working_index);
                 if new_working_index == working_index {
                     break;
                 } else {
                     working_index = new_working_index;
+                    needs_further_update = true;
                 }
+            }
+
+            if needs_further_update {
+                self.particles_to_update.push(working_index);
             }
         }
     }
