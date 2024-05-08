@@ -77,8 +77,10 @@ impl ParticleGrid {
 
         for (i, p) in self.particles.iter().enumerate() {
             match p {
-                Particle::Empty => canvas.set_range(i..i + 1, &empty_color),
-                Particle::Sand(ref sand) => canvas.set_range(i..i + 1, &sand.color),
+                Particle::Empty => canvas.set_range(i..i + 1, std::slice::from_ref(&empty_color)),
+                Particle::Sand(ref sand) => {
+                    canvas.set_range(i..i + 1, std::slice::from_ref(&sand.color))
+                }
             }
         }
     }
@@ -150,7 +152,7 @@ impl ParticleGrid {
             let mut working_index = i;
             for _ in 0..steps {
                 let new_working_index = self.execute_step(working_index);
-                if (new_working_index == working_index) {
+                if new_working_index == working_index {
                     break;
                 } else {
                     working_index = new_working_index;

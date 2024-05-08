@@ -89,30 +89,69 @@ pub fn run<State, CanvasImpl: Canvas>(
     }
 }
 
+#[repr(C)]
 #[derive(Clone, PartialEq)]
 pub struct Color {
-    bytes: [u8; 4],
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+}
+
+trait ColorAsByteSlice {
+    fn as_byte_slice(&self) -> &[u8];
+}
+
+impl ColorAsByteSlice for [Color] {
+    fn as_byte_slice(&self) -> &[u8] {
+        let byte_slice = unsafe {
+            std::slice::from_raw_parts(
+                self.as_ptr() as *const u8,
+                std::mem::size_of::<Color>() * self.len(),
+            )
+        };
+        byte_slice
+    }
 }
 
 impl Color {
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        let sized_bytes: &[u8; 4] = bytes.try_into().unwrap();
-        Self {
-            bytes: sized_bytes.clone(),
+    pub fn from_bytes(bytes: &[u8]) -> &[Self] {
+        if bytes.len() % std::mem::size_of::<Color>() != 0 {
+            panic!("Color slices can only be initialized with a multiple of 4 byte slices");
         }
+
+        let color_slice = unsafe {
+            if bytes.as_ptr() as usize % std::mem::align_of::<Color>() != 0 {
+                panic!(
+                    "alignment of color byte slice must be fitting for alignment of Color struct"
+                )
+            }
+
+            std::slice::from_raw_parts(
+                bytes.as_ptr() as *const Color,
+                bytes.len() / std::mem::size_of::<Color>(),
+            )
+        };
+
+        color_slice
     }
 
     pub fn from_rgba(r: u8, b: u8, g: u8, a: u8) -> Self {
-        Self {
-            bytes: [r, g, b, a],
-        }
+        Self { r, g, b, a }
     }
     pub fn from_rgb(r: u8, b: u8, g: u8) -> Self {
         Self::from_rgba(r, g, b, 255)
     }
 
-    pub fn as_bytes(&self) -> &[u8; 4] {
-        &self.bytes
+    pub fn as_bytes(&self) -> &[u8] {
+        let color_slice = std::slice::from_ref(self);
+        let byte_slice = unsafe {
+            std::slice::from_raw_parts(
+                color_slice.as_ptr() as *const u8,
+                std::mem::size_of::<Color>(),
+            )
+        };
+        byte_slice
     }
 }
 
@@ -120,21 +159,33 @@ pub trait Canvas {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
     fn blit(&mut self) -> Result<()>;
-    fn get(&self, x: u32, y: u32) -> Color;
-    fn set(&mut self, x: u32, y: u32, color: &Color);
-    fn set_range(&mut self, range: Range<usize>, color: &Color);
+    fn set_range(&mut self, range: Range<usize>, color: &[Color]);
+    fn get_range(&self, range: Range<usize>) -> &[Color];
     fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)>;
     fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
 
+    fn get(&self, x: u32, y: u32) -> &Color {
+        let i = (y * self.width() + x) as usize;
+        let color_slice = self.get_range(i..i + 1);
+        // @TODO: Check if clone happens here
+        &color_slice[0]
+    }
+
+    fn set(&mut self, x: u32, y: u32, color: &Color) {
+        let i = (y * self.width() + x) as usize;
+        self.set_range(i..i + 1, std::slice::from_ref(color));
+    }
+
     fn clear_screen(&mut self, color: &Color) {
-        self.set_range(0..(self.height() * self.width()) as usize, &color);
+        self.filled_rect(0, 0, self.width(), self.height(), color)
     }
 
     fn filled_rect(&mut self, sx: u32, sy: u32, width: u32, height: u32, color: &Color) {
+        let color_row = vec![color.clone(); width as usize];
         for y in sy..sy + height {
             self.set_range(
                 (y * self.width() + sx) as usize..(y * self.width() + sx + width) as usize,
-                color,
+                color_row.as_slice(),
             );
         }
     }
@@ -165,24 +216,17 @@ impl Canvas for PixelsCanvas {
         Ok(())
     }
 
-    fn get(&self, x: u32, y: u32) -> Color {
-        let i = ((y * self.width() + x) * 4) as usize;
+    fn get_range(&self, range: Range<usize>) -> &[Color] {
+        let byte_range = range.start * 4..range.end * 4;
         let buf = self.pixels.frame();
-        Color::from_bytes(&buf[i..i + 4])
+        let byte_slice = &buf[byte_range];
+        Color::from_bytes(byte_slice)
     }
 
-    fn set(&mut self, x: u32, y: u32, color: &Color) {
-        let i = ((y * self.width() + x) * 4) as usize;
-        let buf = self.pixels.frame_mut();
-        buf[i..i + 4].copy_from_slice(color.as_bytes());
-    }
-
-    fn set_range(&mut self, range: Range<usize>, color: &Color) {
+    fn set_range(&mut self, range: Range<usize>, colors: &[Color]) {
         let byte_range = range.start * 4..range.end * 4;
         let buf = self.pixels.frame_mut();
-        for chunk in buf[byte_range].chunks_exact_mut(4) {
-            chunk.copy_from_slice(color.as_bytes());
-        }
+        buf[byte_range].copy_from_slice(colors.as_byte_slice())
     }
 
     fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)> {
