@@ -122,7 +122,7 @@ pub fn run<State, CanvasImpl: Canvas>(
 }
 
 #[repr(C)]
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct Color {
     r: u8,
     g: u8,
