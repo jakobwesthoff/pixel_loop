@@ -53,7 +53,7 @@ impl Sand {
     fn sand_color_variation<R: rand::Rng + ?Sized>(rand: &mut R, color: &Color) -> Color {
         let hsl = color.as_hsl();
 
-        let range = 20f64;
+        let range = 10f64;
 
         let ds = range * rand.gen::<f64>() - range / 2.0;
         let dl = range * rand.gen::<f64>() - range / 2.0;
