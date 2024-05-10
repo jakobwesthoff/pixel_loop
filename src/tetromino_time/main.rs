@@ -21,8 +21,8 @@ struct State {
 
 fn main() -> Result<()> {
     let width = 74;
-    let height = 48;
-    let scale = 10;
+    let height = 32;
+    let scale = 15;
 
     let context = pixel_loop::init_tao_window("tetromino_time", width * scale, height * scale)
         .context("create tao window")?;
@@ -65,7 +65,7 @@ fn main() -> Result<()> {
             let char_width = 7;
             // UPDATE BEGIN
             s.updates_skipped += 1;
-            if s.updates_skipped <= 10 {
+            if s.updates_skipped <= 15 {
                 s.updates_skipped += 1;
                 return Ok(());
             } else {
