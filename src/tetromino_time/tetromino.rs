@@ -160,19 +160,34 @@ impl TetrominoType {
                     canvas.blit(block, x, y, Some(color));
                     canvas.blit(block, x, y - block.height(), Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() * 2,
+                        y - block.height(),
+                        Some(color),
+                    );
                 }
                 if rotation == 2 {
                     canvas.blit(block, x + block.width(), y, Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width(),
+                        y - block.height() * 2,
+                        Some(color),
+                    );
                     canvas.blit(block, x, y - block.height() * 2, Some(color));
                 }
                 if rotation == 3 {
                     canvas.blit(block, x, y, Some(color));
                     canvas.blit(block, x + block.width(), y, Some(color));
                     canvas.blit(block, x + block.width() * 2, y, Some(color));
-                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() * 2,
+                        y - block.height(),
+                        Some(color),
+                    );
                 }
             }
             LShapeReverse => {
@@ -180,7 +195,12 @@ impl TetrominoType {
                     canvas.blit(block, x, y, Some(color));
                     canvas.blit(block, x + block.width(), y, Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width(),
+                        y - block.height() * 2,
+                        Some(color),
+                    );
                 }
                 if rotation == 1 {
                     canvas.blit(block, x, y, Some(color));
@@ -192,12 +212,22 @@ impl TetrominoType {
                     canvas.blit(block, x, y, Some(color));
                     canvas.blit(block, x, y - block.height(), Some(color));
                     canvas.blit(block, x, y - block.height() * 2, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width(),
+                        y - block.height() * 2,
+                        Some(color),
+                    );
                 }
                 if rotation == 3 {
                     canvas.blit(block, x, y - block.height(), Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() * 2,
+                        y - block.height(),
+                        Some(color),
+                    );
                     canvas.blit(block, x + block.width() * 2, y, Some(color));
                 }
             }
@@ -228,7 +258,12 @@ impl TetrominoType {
                     canvas.blit(block, x, y, Some(color));
                     canvas.blit(block, x + block.width(), y, Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() * 2,
+                        y - block.height(),
+                        Some(color),
+                    );
                 }
             }
             SShapeReverse => {
@@ -236,7 +271,12 @@ impl TetrominoType {
                     canvas.blit(block, x, y, Some(color));
                     canvas.blit(block, x, y - block.height(), Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width(),
+                        y - block.height() * 2,
+                        Some(color),
+                    );
                 }
                 if rotation == 1 || rotation == 3 {
                     canvas.blit(block, x + block.width(), y, Some(color));
@@ -262,13 +302,23 @@ impl TetrominoType {
                     canvas.blit(block, x + block.width(), y, Some(color));
                     canvas.blit(block, x, y - block.height(), Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() * 2,
+                        y - block.height(),
+                        Some(color),
+                    );
                 }
                 if rotation == 3 {
                     canvas.blit(block, x + block.width(), y, Some(color));
                     canvas.blit(block, x, y - block.height(), Some(color));
                     canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width(),
+                        y - block.height() * 2,
+                        Some(color),
+                    );
                 }
             }
             CornerShape => {
@@ -305,6 +355,9 @@ pub struct Tetromino {
     tcolor: TetrominoColor,
     rotation: u8,
     y_stop: u32,
+    speed: f64,
+    acceleration: f64,
+    max_speed: f64,
 }
 
 impl Tetromino {
@@ -312,14 +365,34 @@ impl Tetromino {
         self.y == self.y_stop
     }
 
-    pub fn move_down(&mut self) {
-        if !self.is_finished() {
-            self.y += 1;
+    pub fn update<R: rand::Rng>(&mut self, rand: &mut R) {
+        self.speed = self.speed + self.acceleration;
+        if self.speed > self.max_speed {
+            self.speed = self.max_speed;
+        }
+
+        let mut movement = self.speed.floor() as u32;
+
+        if rand.gen::<f64>() < self.speed - self.speed.floor() {
+            movement += 1;
+        }
+
+        self.y += movement;
+
+        if self.y > self.y_stop {
+            self.y = self.y_stop;
+            self.speed = 0.0;
         }
     }
 
-    pub fn from_anim_step(step: AnimStep, x: u32, y_offset: u32) -> Self {
+    pub fn from_anim_step<R: rand::Rng>(
+        step: AnimStep,
+        rand: &mut R,
+        x: u32,
+        y_offset: u32,
+    ) -> Self {
         // @TODO: Do not reference block canvas here directly!
+        // @TODO: Extract the falling into some sort of base behaviour?
         Self {
             tt: step.tt,
             x: x + step.x_pos * block_canvas().width(),
@@ -327,6 +400,9 @@ impl Tetromino {
             tcolor: step.tcolor,
             rotation: step.rotation,
             y_stop: y_offset + step.y_stop * block_canvas().height(),
+            speed: rand.gen::<f64>() * 0.2 + 0.1,
+            acceleration: rand.gen::<f64>() * 0.1 + 0.1,
+            max_speed: 7.0,
         }
     }
 

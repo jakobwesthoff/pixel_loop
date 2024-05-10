@@ -62,13 +62,13 @@ fn main() -> Result<()> {
         |e, s, canvas| {
             // @TODO: take this somehow from the base block size or move the
             // spacing to the "font" somehow
-            let char_width = 7*16;
+            let char_width = 7 * 16;
             // UPDATE BEGIN
 
             for i in 0..s.digits_active.len() {
                 match s.digits_active[i] {
                     Some(ref mut tetromino) => {
-                        tetromino.move_down();
+                        tetromino.update(&mut e.rand);
                         if tetromino.is_finished() {
                             let tetromino = s.digits_active[i].take().unwrap();
                             s.digits_fallen[i].push(tetromino);
@@ -78,6 +78,7 @@ fn main() -> Result<()> {
                         if let Some(next_step) = s.digits_anim[i].pop_front() {
                             s.digits_active[i] = Some(Tetromino::from_anim_step(
                                 next_step,
+                                &mut e.rand,
                                 (i * char_width) as u32,
                                 200,
                             ));
