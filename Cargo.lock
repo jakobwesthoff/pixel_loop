@@ -1220,6 +1220,7 @@ dependencies = [
  "pixels",
  "rand",
  "rand_xoshiro",
+ "stb_image",
  "tao",
 ]
 
@@ -1508,6 +1509,16 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "stb_image"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bfdaa89eb7dd3362e4abb16c4a8acf04786755882b38ff00714f2f1de0f4fcd3"
+dependencies = [
+ "cc",
+ "libc",
+]
 
 [[package]]
 name = "syn"

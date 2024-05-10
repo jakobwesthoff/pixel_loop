@@ -1,4 +1,14 @@
-use pixel_loop::{Canvas, Color};
+use std::sync::OnceLock;
+
+use pixel_loop::{Canvas, Color, InMemoryCanvas};
+
+fn block_canvas() -> &'static InMemoryCanvas {
+    static CANVAS: OnceLock<InMemoryCanvas> = OnceLock::new();
+    CANVAS.get_or_init(|| {
+        InMemoryCanvas::from_in_memory_image(include_bytes!("./assets/tetromino_block_16.png"))
+            .expect("can't load base tetromino block asset")
+    })
+}
 
 #[derive(Clone, Debug)]
 enum TetrominoColor {
@@ -63,6 +73,10 @@ pub struct AnimStep {
 }
 
 impl AnimStep {
+    // As we "stole" those animations from:
+    // https://github.com/n00dles/esp_p10_tetris_clock/blob/master/src/numbers.h
+    // we need some sort of conversion from his struct to ours.
+    //
     // int blocktype;  // Number of the block type
     // int color; // Color of the brick
     // int x_pos;      // x-position (starting from the left number staring point) where the brick should be placed
@@ -114,157 +128,169 @@ impl TetrominoType {
         }
     }
 
-    fn draw<C: Canvas>(&self, canvas: &mut C, x: u32, y: u32, color: &Color, rotation: u8) {
+    fn draw<TargetCanvas: Canvas, BlockCanvas: Canvas>(
+        &self,
+        canvas: &mut TargetCanvas,
+        block: &BlockCanvas,
+        x: u32,
+        y: u32,
+        color: &Color,
+        rotation: u8,
+    ) {
         use TetrominoType::*;
         match self {
             Square => {
-                canvas.set(x, y, color);
-                canvas.set(x + 1, y, color);
-                canvas.set(x, y - 1, color);
-                canvas.set(x + 1, y - 1, color);
+                // canvas.set(x, y, color);
+                // canvas.set(x + 1, y, color);
+                // canvas.set(x, y - 1, color);
+                // canvas.set(x + 1, y - 1, color);
+                canvas.blit(block, x, y, Some(color));
+                canvas.blit(block, x + block.width(), y, Some(color));
+                canvas.blit(block, x, y - block.width(), Some(color));
+                canvas.blit(block, x + block.width(), y - block.height(), Some(color));
             }
             LShape => {
                 if rotation == 0 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x, y - 2, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() * 2, Some(color));
                 }
                 if rotation == 1 {
-                    canvas.set(x, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 2, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
                 }
                 if rotation == 2 {
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 1, y - 2, color);
-                    canvas.set(x, y - 2, color);
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
+                    canvas.blit(block, x, y - block.height() * 2, Some(color));
                 }
                 if rotation == 3 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 2, y, color);
-                    canvas.set(x + 2, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
                 }
             }
             LShapeReverse => {
                 if rotation == 0 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 1, y - 2, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
                 }
                 if rotation == 1 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 2, y, color);
-                    canvas.set(x, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
                 }
                 if rotation == 2 {
-                    canvas.set(x, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x, y - 2, color);
-                    canvas.set(x + 1, y - 2, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
                 }
                 if rotation == 3 {
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 2, y - 1, color);
-                    canvas.set(x + 2, y, color);
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() * 2, y, Some(color));
                 }
             }
             IShape => {
                 if rotation == 0 || rotation == 2 {
                     // Horizontal
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 2, y, color);
-                    canvas.set(x + 3, y, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(block, x + block.width() * 3, y, Some(color));
                 }
                 if rotation == 1 || rotation == 3 {
                     // Vertical
-                    canvas.set(x, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x, y - 2, color);
-                    canvas.set(x, y - 3, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(block, x, y - block.height() * 3, Some(color));
                 }
             }
             SShape => {
                 if rotation == 0 || rotation == 2 {
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x, y - 2, color);
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() * 2, Some(color));
                 }
                 if rotation == 1 || rotation == 3 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 2, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
                 }
             }
             SShapeReverse => {
                 if rotation == 0 || rotation == 2 {
-                    canvas.set(x, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 1, y - 2, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
                 }
                 if rotation == 1 || rotation == 3 {
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 2, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
                 }
             }
             HalfCross => {
                 if rotation == 0 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 2, y, color);
-                    canvas.set(x + 1, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
                 }
                 if rotation == 1 {
-                    canvas.set(x, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x, y - 2, color);
-                    canvas.set(x + 1, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
                 }
                 if rotation == 2 {
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 2, y - 1, color);
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() * 2, y - block.height(), Some(color));
                 }
                 if rotation == 3 {
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x + 1, y - 2, color);
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height() * 2, Some(color));
                 }
             }
             CornerShape => {
                 if rotation == 0 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
                 }
                 if rotation == 1 {
-                    canvas.set(x, y, color);
-                    canvas.set(x, y - 1, color);
-                    canvas.set(x + 1, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
                 }
                 if rotation == 2 {
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 1, y - 1, color);
-                    canvas.set(x, y - 1, color);
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height(), Some(color));
                 }
                 if rotation == 3 {
-                    canvas.set(x, y, color);
-                    canvas.set(x + 1, y, color);
-                    canvas.set(x + 1, y - 1, color);
+                    canvas.blit(block, x, y, Some(color));
+                    canvas.blit(block, x + block.width(), y, Some(color));
+                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
                 }
             }
         }
@@ -293,19 +319,21 @@ impl Tetromino {
     }
 
     pub fn from_anim_step(step: AnimStep, x: u32, y_offset: u32) -> Self {
+        // @TODO: Do not reference block canvas here directly!
         Self {
             tt: step.tt,
-            x: x + step.x_pos,
+            x: x + step.x_pos * block_canvas().width(),
             y: y_offset,
             tcolor: step.tcolor,
             rotation: step.rotation,
-            y_stop: y_offset + step.y_stop,
+            y_stop: y_offset + step.y_stop * block_canvas().height(),
         }
     }
 
     pub fn draw<C: Canvas>(&self, canvas: &mut C) {
         self.tt.draw(
             canvas,
+            block_canvas(),
             self.x,
             self.y,
             self.tcolor.as_color(),

@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use pixels::{Pixels, SurfaceTexture};
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
@@ -37,7 +37,7 @@ impl Default for EngineState {
     }
 }
 
-struct PixelLoop<State, CanvasImpl: Canvas> {
+struct PixelLoop<State, CanvasImpl: RenderableCanvas> {
     accumulator: Duration,
     current_time: Instant,
     last_time: Instant,
@@ -51,7 +51,7 @@ struct PixelLoop<State, CanvasImpl: Canvas> {
 
 impl<State, CanvasImpl> PixelLoop<State, CanvasImpl>
 where
-    CanvasImpl: Canvas,
+    CanvasImpl: RenderableCanvas,
 {
     pub fn new(
         update_fps: usize,
@@ -109,7 +109,7 @@ where
     }
 }
 
-pub fn run<State, CanvasImpl: Canvas>(
+pub fn run<State, CanvasImpl: RenderableCanvas>(
     state: State,
     canvas: CanvasImpl,
     update: UpdateFn<State, CanvasImpl>,
@@ -122,7 +122,7 @@ pub fn run<State, CanvasImpl: Canvas>(
 }
 
 #[repr(C)]
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Color {
     r: u8,
     g: u8,
@@ -304,11 +304,58 @@ impl HslColor {
 pub trait Canvas {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
-    fn blit(&mut self) -> Result<()>;
     fn set_range(&mut self, range: Range<usize>, color: &[Color]);
     fn get_range(&self, range: Range<usize>) -> &[Color];
-    fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)>;
-    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
+
+    fn blit<C: Canvas>(&mut self, src_canvas: &C, dst_x: u32, dst_y: u32, tint: Option<&Color>) {
+        self.blit_rect(
+            src_canvas,
+            0,
+            0,
+            src_canvas.width(),
+            src_canvas.height(),
+            dst_x,
+            dst_y,
+            tint,
+        )
+    }
+
+    fn blit_rect<C: Canvas>(
+        &mut self,
+        src_canvas: &C,
+        src_x: u32,
+        src_y: u32,
+        width: u32,
+        height: u32,
+        dst_x: u32,
+        dst_y: u32,
+        tint: Option<&Color>,
+    ) {
+        for y in 0..height {
+            let src_start = (((src_y + y) * src_canvas.width()) + src_x) as usize;
+            let src_end = src_start + width as usize;
+            let dst_start = (((dst_y + y) * self.width()) + dst_x) as usize;
+            let dst_end = dst_start + width as usize;
+            let row = src_canvas.get_range(src_start..src_end);
+
+            if let Some(tint) = tint {
+                self.set_range(
+                    dst_start..dst_end,
+                    &row.iter()
+                        .map(|c| {
+                            Color::from_rgb(
+                                (c.r as usize * tint.r as usize / 255 as usize) as u8,
+                                (c.g as usize * tint.g as usize / 255 as usize) as u8,
+                                (c.b as usize * tint.b as usize / 255 as usize) as u8,
+                            )
+                        })
+                        .collect::<Vec<Color>>(),
+                );
+            } else {
+                self.set_range(dst_start..dst_end, row);
+            }
+        }
+    }
 
     fn get(&self, x: u32, y: u32) -> &Color {
         let i = (y * self.width() + x) as usize;
@@ -320,6 +367,14 @@ pub trait Canvas {
     fn set(&mut self, x: u32, y: u32, color: &Color) {
         let i = (y * self.width() + x) as usize;
         self.set_range(i..i + 1, std::slice::from_ref(color));
+    }
+
+    fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)> {
+        if x < 0 || x >= self.width() as i64 || y < 0 || y >= self.height() as i64 {
+            None
+        } else {
+            Some((x as u32, y as u32))
+        }
     }
 
     fn clear_screen(&mut self, color: &Color) {
@@ -334,6 +389,77 @@ pub trait Canvas {
                 color_row.as_slice(),
             );
         }
+    }
+}
+
+pub trait RenderableCanvas: Canvas {
+    fn render(&mut self) -> Result<()>;
+    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
+}
+
+pub struct InMemoryCanvas {
+    buffer: Vec<Color>,
+    width: u32,
+    height: u32,
+}
+
+impl InMemoryCanvas {
+    pub fn new(width: u32, height: u32, color: &Color) -> Self {
+        Self {
+            buffer: vec![color.clone(); (width * height) as usize],
+            width,
+            height,
+        }
+    }
+
+    pub fn from_in_memory_image(bytes: &[u8]) -> Result<Self> {
+        use stb_image::image;
+        use stb_image::image::LoadResult::*;
+        match image::load_from_memory(bytes) {
+            Error(msg) => return Err(anyhow!("Could not load image from memory: {msg}")),
+            ImageF32(_) => return Err(anyhow!("Could not load hdr image from memory")),
+            ImageU8(image) => {
+                if image.depth != 3 {
+                    return Err(anyhow!(
+                        "Could not load image with depth != 3. It has {depth}",
+                        depth = image.depth
+                    ));
+                }
+
+                let mut buffer: Vec<Color> = Vec::with_capacity(image.width * image.height);
+                for i in (0..image.width * image.height * image.depth).step_by(image.depth) {
+                    buffer.push(Color::from_rgb(
+                        image.data[i],
+                        image.data[i + 1],
+                        image.data[i + 2],
+                    ))
+                }
+
+                return Ok(Self {
+                    width: image.width as u32,
+                    height: image.height as u32,
+                    buffer,
+                });
+            }
+        }
+    }
+}
+
+impl Canvas for InMemoryCanvas {
+    fn width(&self) -> u32 {
+        self.width
+    }
+
+    fn height(&self) -> u32 {
+        self.height
+    }
+
+    fn set_range(&mut self, range: Range<usize>, color: &[Color]) {
+        self.buffer[range].copy_from_slice(color);
+    }
+
+    fn get_range(&self, range: Range<usize>) -> &[Color] {
+        &self.buffer[range]
     }
 }
 
@@ -355,13 +481,6 @@ impl Canvas for PixelsCanvas {
         self.pixels.texture().height()
     }
 
-    fn blit(&mut self) -> Result<()> {
-        self.pixels
-            .render()
-            .context("letting pixels lib blit to screen")?;
-        Ok(())
-    }
-
     fn get_range(&self, range: Range<usize>) -> &[Color] {
         let byte_range = range.start * 4..range.end * 4;
         let buf = self.pixels.frame();
@@ -374,21 +493,22 @@ impl Canvas for PixelsCanvas {
         let buf = self.pixels.frame_mut();
         buf[byte_range].copy_from_slice(colors.as_byte_slice())
     }
+}
 
-    fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)> {
-        if x < 0 || x >= self.width() as i64 || y < 0 || y >= self.height() as i64 {
-            None
-        } else {
-            Some((x as u32, y as u32))
-        }
-    }
-
+impl RenderableCanvas for PixelsCanvas {
     fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
         if let Ok((x, y)) = self.pixels.window_pos_to_pixel((x as f32, y as f32)) {
             Some((x as u32, y as u32))
         } else {
             None
         }
+    }
+
+    fn render(&mut self) -> Result<()> {
+        self.pixels
+            .render()
+            .context("letting pixels lib blit to screen")?;
+        Ok(())
     }
 }
 

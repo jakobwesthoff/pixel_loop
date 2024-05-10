@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use pixel_loop::{Canvas, Color, HslColor};
+use pixel_loop::{Canvas, Color, HslColor, RenderableCanvas};
 use rand::Rng;
 use std::time::Duration;
 use tao::event::{ElementState, Event, KeyEvent, MouseButton, WindowEvent};
@@ -532,7 +532,7 @@ fn main() -> Result<()> {
                 s.time_passed = Duration::default();
             }
 
-            canvas.blit()?;
+            canvas.render()?;
 
             Ok(())
         },

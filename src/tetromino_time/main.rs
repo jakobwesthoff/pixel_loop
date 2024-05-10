@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
-use pixel_loop::{Canvas, Color};
+use pixel_loop::{Canvas, Color, RenderableCanvas};
 use tetromino::{AnimStep, Tetromino};
 
 mod number_animations;
@@ -16,13 +16,12 @@ struct State {
     digits_anim: Vec<VecDeque<AnimStep>>,
     digits_active: Vec<Option<Tetromino>>,
     digits_fallen: Vec<Vec<Tetromino>>,
-    updates_skipped: usize,
 }
 
 fn main() -> Result<()> {
-    let width = 74;
-    let height = 32;
-    let scale = 15;
+    let width = 1280;
+    let height = 720;
+    let scale = 1;
 
     let context = pixel_loop::init_tao_window("tetromino_time", width * scale, height * scale)
         .context("create tao window")?;
@@ -61,16 +60,10 @@ fn main() -> Result<()> {
         context,
         canvas,
         |e, s, canvas| {
-            s.updates_called += 1;
-            let char_width = 7;
+            // @TODO: take this somehow from the base block size or move the
+            // spacing to the "font" somehow
+            let char_width = 7*16;
             // UPDATE BEGIN
-            s.updates_skipped += 1;
-            if s.updates_skipped <= 15 {
-                s.updates_skipped += 1;
-                return Ok(());
-            } else {
-                s.updates_skipped = 0;
-            }
 
             for i in 0..s.digits_active.len() {
                 match s.digits_active[i] {
@@ -86,7 +79,7 @@ fn main() -> Result<()> {
                             s.digits_active[i] = Some(Tetromino::from_anim_step(
                                 next_step,
                                 (i * char_width) as u32,
-                                8,
+                                200,
                             ));
                         }
                     }
@@ -124,7 +117,7 @@ fn main() -> Result<()> {
                 s.time_passed = Duration::default();
             }
 
-            canvas.blit()?;
+            canvas.render()?;
 
             Ok(())
         },
