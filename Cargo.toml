@@ -9,9 +9,12 @@ name = "pixel_loop"
 path = "src/pixel_loop/lib.rs"
 
 [[bin]]
+name = "tetromino_time"
+path = "src/tetromino_time/main.rs"
+
+[[bin]]
 name = "pixel_sand"
 path = "src/pixel_sand/main.rs"
-
 
 [dependencies]
 anyhow = "1.0.82"

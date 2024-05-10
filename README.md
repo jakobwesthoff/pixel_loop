@@ -17,6 +17,7 @@ Currently, this repository houses different experiments implemented based on `pi
 Currently, there are the following:
 
 * [pixel_sand](src/pixel_sand/README.md) - A sand movement simulator.
+* [tetromino_time](src/tetromino_time/README.md) - A Tetromino based timer.
 
 ## Build Instructions
 
