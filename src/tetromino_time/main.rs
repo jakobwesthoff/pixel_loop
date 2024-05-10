@@ -84,7 +84,7 @@ fn main() -> Result<()> {
                     None => {
                         if let Some(next_step) = s.digits_anim[i].pop_front() {
                             s.digits_active[i] = Some(Tetromino::from_anim_step(
-                                &next_step,
+                                next_step,
                                 (i * char_width) as u32,
                                 8,
                             ));

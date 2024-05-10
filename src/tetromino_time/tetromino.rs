@@ -1,40 +1,91 @@
 use pixel_loop::{Canvas, Color};
 
-//   int blocktype;  // Number of the block type
-//   int color; // Color of the brick
-//   int x_pos;      // x-position (starting from the left number staring point) where the brick should be placed
-//   int y_stop;     // y-position (1-16, where 16 is the last line of the matrix) where the brick should stop falling
-//   int num_rot;    // Number of 90-degree (clockwise) rotations a brick is turned from the standard position
-#[derive(Clone)]
-pub struct AnimStep(pub u32, pub u32, pub u32, pub u32, pub u8);
+#[derive(Clone, Debug)]
+enum TetrominoColor {
+    Red,
+    Green,
+    Blue,
+    White,
+    Yellow,
+    Cyan,
+    Magenta,
+    Orange,
+}
 
-impl AnimStep {
-    fn as_color(&self) -> Color {
-        match self.1 {
-            // RED;
-            0 => Color::from_rgb(255, 0, 0),
-            // GREEN;
-            1 => Color::from_rgb(0, 255, 0),
-            // BLUE;
-            2 => Color::from_rgb(0, 0, 255),
-            // WHITE;
-            3 => Color::from_rgb(255, 255, 255),
-            // YELLOW;
-            4 => Color::from_rgb(255, 255, 0),
-            // CYAN;
-            5 => Color::from_rgb(0, 255, 255),
-            // MAGENTA;
-            6 => Color::from_rgb(255, 0, 255),
-            // ORANGE;
-            7 => Color::from_rgb(255, 165, 0),
-            // BLACK;
-            8 => Color::from_rgb(0, 0, 0),
-            _ => panic!("Unknown color in AnimStep {num}", num = self.1),
+impl TetrominoColor {
+    const RED: Color = Color::from_rgb(255, 0, 0);
+    const GREEN: Color = Color::from_rgb(0, 255, 0);
+    const BLUE: Color = Color::from_rgb(0, 0, 255);
+    const WHITE: Color = Color::from_rgb(255, 255, 255);
+    const YELLOW: Color = Color::from_rgb(255, 255, 0);
+    const CYAN: Color = Color::from_rgb(0, 255, 255);
+    const MAGENTA: Color = Color::from_rgb(255, 0, 255);
+    const ORANGE: Color = Color::from_rgb(255, 165, 0);
+
+    pub const fn from_num_color(num_color: u8) -> Self {
+        use TetrominoColor::*;
+        match num_color {
+            0 => Red,
+            1 => Green,
+            2 => Blue,
+            3 => White,
+            4 => Yellow,
+            5 => Cyan,
+            6 => Magenta,
+            7 => Orange,
+            // As it is a const fn we can not panic here.
+            _ => White,
+        }
+    }
+
+    pub fn as_color(&self) -> &Color {
+        use TetrominoColor::*;
+        match self {
+            Red => &Self::RED,
+            Green => &Self::GREEN,
+            Blue => &Self::BLUE,
+            White => &Self::WHITE,
+            Yellow => &Self::YELLOW,
+            Cyan => &Self::CYAN,
+            Magenta => &Self::MAGENTA,
+            Orange => &Self::ORANGE,
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone)]
+pub struct AnimStep {
+    tt: TetrominoType,
+    tcolor: TetrominoColor,
+    x_pos: u32,
+    y_stop: u32,
+    rotation: u8,
+}
+
+impl AnimStep {
+    // int blocktype;  // Number of the block type
+    // int color; // Color of the brick
+    // int x_pos;      // x-position (starting from the left number staring point) where the brick should be placed
+    // int y_stop;     // y-position (1-16, where 16 is the last line of the matrix) where the brick should stop falling
+    // int num_rot;
+    pub const fn from_numeric(
+        num_type: u32,
+        num_color: u8,
+        x_pos: u32,
+        y_stop: u32,
+        num_rot: u8,
+    ) -> Self {
+        Self {
+            tt: TetrominoType::from_num_type(num_type),
+            tcolor: TetrominoColor::from_num_color(num_color),
+            x_pos,
+            y_stop,
+            rotation: num_rot,
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub enum TetrominoType {
     Square,
     LShape,
@@ -47,7 +98,7 @@ pub enum TetrominoType {
 }
 
 impl TetrominoType {
-    fn from_block_num(num: u32) -> Self {
+    const fn from_num_type(num: u32) -> Self {
         use TetrominoType::*;
         match num {
             0 => Square,
@@ -58,7 +109,8 @@ impl TetrominoType {
             5 => SShapeReverse,
             6 => HalfCross,
             7 => CornerShape,
-            _ => panic!("Unknown block number {num} for TetrominoType."),
+            // We can not panic here as this is const fn
+            _ => Square,
         }
     }
 
@@ -223,15 +275,15 @@ impl TetrominoType {
 pub struct Tetromino {
     x: u32,
     y: u32,
-    tetromino_type: TetrominoType,
-    color: Color,
+    tt: TetrominoType,
+    tcolor: TetrominoColor,
     rotation: u8,
-    y_end: u32,
+    y_stop: u32,
 }
 
 impl Tetromino {
     pub fn is_finished(&self) -> bool {
-        self.y == self.y_end
+        self.y == self.y_stop
     }
 
     pub fn move_down(&mut self) {
@@ -240,19 +292,24 @@ impl Tetromino {
         }
     }
 
-    pub fn from_anim_step(step: &AnimStep, x: u32, y_offset: u32) -> Self {
+    pub fn from_anim_step(step: AnimStep, x: u32, y_offset: u32) -> Self {
         Self {
-            tetromino_type: TetrominoType::from_block_num(step.0),
-            x: x + step.2,
+            tt: step.tt,
+            x: x + step.x_pos,
             y: y_offset,
-            color: step.as_color(),
-            rotation: step.4,
-            y_end: y_offset + step.3,
+            tcolor: step.tcolor,
+            rotation: step.rotation,
+            y_stop: y_offset + step.y_stop,
         }
     }
 
     pub fn draw<C: Canvas>(&self, canvas: &mut C) {
-        self.tetromino_type
-            .draw(canvas, self.x, self.y, &self.color, self.rotation);
+        self.tt.draw(
+            canvas,
+            self.x,
+            self.y,
+            self.tcolor.as_color(),
+            self.rotation,
+        );
     }
 }

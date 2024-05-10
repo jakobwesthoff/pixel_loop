@@ -168,10 +168,10 @@ impl Color {
         color_slice
     }
 
-    pub fn from_rgba(r: u8, b: u8, g: u8, a: u8) -> Self {
+    pub const fn from_rgba(r: u8, b: u8, g: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
-    pub fn from_rgb(r: u8, b: u8, g: u8) -> Self {
+    pub const fn from_rgb(r: u8, b: u8, g: u8) -> Self {
         Self::from_rgba(r, g, b, 255)
     }
 
