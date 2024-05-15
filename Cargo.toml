@@ -18,6 +18,7 @@ path = "src/pixel_sand/main.rs"
 
 [dependencies]
 anyhow = "1.0.82"
+chrono = "0.4.38"
 pixels = "0.13.0"
 rand = "0.8.5"
 rand_xoshiro = "0.6.0"

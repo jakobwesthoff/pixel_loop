@@ -67,7 +67,7 @@ impl TetrominoColor {
 pub struct AnimStep {
     tt: TetrominoType,
     tcolor: TetrominoColor,
-    x_pos: u32,
+    x_pos: i64,
     y_stop: u32,
     rotation: u8,
 }
@@ -92,7 +92,7 @@ impl AnimStep {
         Self {
             tt: TetrominoType::from_num_type(num_type),
             tcolor: TetrominoColor::from_num_color(num_color),
-            x_pos,
+            x_pos: x_pos as i64,
             y_stop,
             rotation: num_rot,
         }
@@ -132,8 +132,8 @@ impl TetrominoType {
         &self,
         canvas: &mut TargetCanvas,
         block: &BlockCanvas,
-        x: u32,
-        y: u32,
+        x: i64,
+        y: i64,
         color: &Color,
         rotation: u8,
     ) {
@@ -145,47 +145,62 @@ impl TetrominoType {
                 // canvas.set(x, y - 1, color);
                 // canvas.set(x + 1, y - 1, color);
                 canvas.blit(block, x, y, Some(color));
-                canvas.blit(block, x + block.width(), y, Some(color));
-                canvas.blit(block, x, y - block.width(), Some(color));
-                canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                canvas.blit(block, x + block.width() as i64, y, Some(color));
+                canvas.blit(block, x, y - block.width() as i64, Some(color));
+                canvas.blit(
+                    block,
+                    x + block.width() as i64,
+                    y - block.height() as i64,
+                    Some(color),
+                );
             }
             LShape => {
                 if rotation == 0 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64 * 2, Some(color));
                 }
                 if rotation == 1 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width() * 2,
-                        y - block.height(),
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64 * 2,
+                        y - block.height() as i64,
                         Some(color),
                     );
                 }
                 if rotation == 2 {
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width(),
-                        y - block.height() * 2,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
                         Some(color),
                     );
-                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64 * 2,
+                        Some(color),
+                    );
+                    canvas.blit(block, x, y - block.height() as i64 * 2, Some(color));
                 }
                 if rotation == 3 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64 * 2, y, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width() * 2,
-                        y - block.height(),
+                        x + block.width() as i64 * 2,
+                        y - block.height() as i64,
                         Some(color),
                     );
                 }
@@ -193,75 +208,95 @@ impl TetrominoType {
             LShapeReverse => {
                 if rotation == 0 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width(),
-                        y - block.height() * 2,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64 * 2,
                         Some(color),
                     );
                 }
                 if rotation == 1 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width() * 2, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64 * 2, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                 }
                 if rotation == 2 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64 * 2, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width(),
-                        y - block.height() * 2,
+                        x + block.width() as i64,
+                        y - block.height() as i64 * 2,
                         Some(color),
                     );
                 }
                 if rotation == 3 {
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width() * 2,
-                        y - block.height(),
+                        x + block.width() as i64,
+                        y - block.height() as i64,
                         Some(color),
                     );
-                    canvas.blit(block, x + block.width() * 2, y, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64 * 2,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(block, x + block.width() as i64 * 2, y, Some(color));
                 }
             }
             IShape => {
                 if rotation == 0 || rotation == 2 {
                     // Horizontal
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width() * 2, y, Some(color));
-                    canvas.blit(block, x + block.width() * 3, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64 * 2, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64 * 3, y, Some(color));
                 }
                 if rotation == 1 || rotation == 3 {
                     // Vertical
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x, y - block.height() * 2, Some(color));
-                    canvas.blit(block, x, y - block.height() * 3, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64 * 2, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64 * 3, Some(color));
                 }
             }
             SShape => {
                 if rotation == 0 || rotation == 2 {
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x, y - block.height() * 2, Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(block, x, y - block.height() as i64 * 2, Some(color));
                 }
                 if rotation == 1 || rotation == 3 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width() * 2,
-                        y - block.height(),
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64 * 2,
+                        y - block.height() as i64,
                         Some(color),
                     );
                 }
@@ -269,54 +304,84 @@ impl TetrominoType {
             SShapeReverse => {
                 if rotation == 0 || rotation == 2 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width(),
-                        y - block.height() * 2,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64 * 2,
                         Some(color),
                     );
                 }
                 if rotation == 1 || rotation == 3 {
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width() * 2, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64 * 2, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
                 }
             }
             HalfCross => {
                 if rotation == 0 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width() * 2, y, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x + block.width() as i64 * 2, y, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
                 }
                 if rotation == 1 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x, y - block.height() * 2, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                }
-                if rotation == 2 {
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64 * 2, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width() * 2,
-                        y - block.height(),
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                }
+                if rotation == 2 {
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64 * 2,
+                        y - block.height() as i64,
                         Some(color),
                     );
                 }
                 if rotation == 3 {
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                     canvas.blit(
                         block,
-                        x + block.width(),
-                        y - block.height() * 2,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64 * 2,
                         Some(color),
                     );
                 }
@@ -324,23 +389,38 @@ impl TetrominoType {
             CornerShape => {
                 if rotation == 0 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                 }
                 if rotation == 1 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
                 }
                 if rotation == 2 {
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
-                    canvas.blit(block, x, y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
+                    canvas.blit(block, x, y - block.height() as i64, Some(color));
                 }
                 if rotation == 3 {
                     canvas.blit(block, x, y, Some(color));
-                    canvas.blit(block, x + block.width(), y, Some(color));
-                    canvas.blit(block, x + block.width(), y - block.height(), Some(color));
+                    canvas.blit(block, x + block.width() as i64, y, Some(color));
+                    canvas.blit(
+                        block,
+                        x + block.width() as i64,
+                        y - block.height() as i64,
+                        Some(color),
+                    );
                 }
             }
         }
@@ -349,12 +429,12 @@ impl TetrominoType {
 
 #[derive(Debug)]
 pub struct Tetromino {
-    x: u32,
-    y: u32,
+    x: i64,
+    y: i64,
     tt: TetrominoType,
     tcolor: TetrominoColor,
     rotation: u8,
-    y_stop: u32,
+    y_stop: i64,
     speed: f64,
     acceleration: f64,
     max_speed: f64,
@@ -371,7 +451,7 @@ impl Tetromino {
             self.speed = self.max_speed;
         }
 
-        let mut movement = self.speed.floor() as u32;
+        let mut movement = self.speed.floor() as i64;
 
         if rand.gen::<f64>() < self.speed - self.speed.floor() {
             movement += 1;
@@ -389,17 +469,17 @@ impl Tetromino {
         step: AnimStep,
         rand: &mut R,
         x: u32,
-        y_offset: u32,
+        y_offset: i64,
     ) -> Self {
         // @TODO: Do not reference block canvas here directly!
         // @TODO: Extract the falling into some sort of base behaviour?
         Self {
             tt: step.tt,
-            x: x + step.x_pos * block_canvas().width(),
+            x: x as i64 + step.x_pos * block_canvas().width() as i64,
             y: y_offset,
             tcolor: step.tcolor,
             rotation: step.rotation,
-            y_stop: y_offset + step.y_stop * block_canvas().height(),
+            y_stop: y_offset + step.y_stop as i64 * block_canvas().height() as i64,
             speed: rand.gen::<f64>() * 0.2 + 0.1,
             acceleration: rand.gen::<f64>() * 0.1 + 0.1,
             max_speed: 7.0,

@@ -408,7 +408,7 @@ fn main() -> Result<()> {
     let height = 480;
 
     let context =
-        pixel_loop::init_tao_window("pixel loop", width, height).context("create tao window")?;
+        pixel_loop::init_tao_window("pixel loop", width, height, false).context("create tao window")?;
     let canvas =
         pixel_loop::init_pixels(&context, width, height).context("initialize pixel canvas")?;
 

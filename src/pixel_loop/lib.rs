@@ -6,25 +6,26 @@ use std::ops::Range;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use tao::dpi::LogicalSize;
 use tao::event::{Event, WindowEvent};
-use tao::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
+use tao::event_loop::{ControlFlow, EventLoop};
 use tao::window::{Window, WindowBuilder};
 
-type UpdateFn<State, CanvasImpl> = fn(&mut EngineState, &mut State, &mut CanvasImpl) -> Result<()>;
+type UpdateFn<State, CanvasImpl> =
+    fn(&mut EngineEnvironment, &mut State, &mut CanvasImpl) -> Result<()>;
 type RenderFn<State, CanvasImpl> =
-    fn(&mut EngineState, &mut State, &mut CanvasImpl, Duration) -> Result<()>;
+    fn(&mut EngineEnvironment, &mut State, &mut CanvasImpl, Duration) -> Result<()>;
 type TaoEventFn<State, CanvasImpl> = fn(
-    &mut EngineState,
+    &mut EngineEnvironment,
     &mut State,
     &mut CanvasImpl,
-    &EventLoopWindowTarget<()>,
+    &Window,
     event: &Event<()>,
 ) -> Result<()>;
 
-pub struct EngineState {
+pub struct EngineEnvironment {
     pub rand: Box<dyn rand::RngCore>,
 }
 
-impl Default for EngineState {
+impl Default for EngineEnvironment {
     fn default() -> Self {
         let now = Instant::now();
         let micros = SystemTime::now()
@@ -43,7 +44,7 @@ struct PixelLoop<State, CanvasImpl: RenderableCanvas> {
     last_time: Instant,
     update_timestep: Duration,
     state: State,
-    engine_state: EngineState,
+    engine_state: EngineEnvironment,
     canvas: CanvasImpl,
     update: UpdateFn<State, CanvasImpl>,
     render: RenderFn<State, CanvasImpl>,
@@ -71,7 +72,7 @@ where
             update_timestep: Duration::from_nanos(
                 (1_000_000_000f64 / update_fps as f64).round() as u64
             ),
-            engine_state: EngineState::default(),
+            engine_state: EngineEnvironment::default(),
             state,
             canvas,
             update,
@@ -307,7 +308,7 @@ pub trait Canvas {
     fn set_range(&mut self, range: Range<usize>, color: &[Color]);
     fn get_range(&self, range: Range<usize>) -> &[Color];
 
-    fn blit<C: Canvas>(&mut self, src_canvas: &C, dst_x: u32, dst_y: u32, tint: Option<&Color>) {
+    fn blit<C: Canvas>(&mut self, src_canvas: &C, dst_x: i64, dst_y: i64, tint: Option<&Color>) {
         self.blit_rect(
             src_canvas,
             0,
@@ -327,32 +328,36 @@ pub trait Canvas {
         src_y: u32,
         width: u32,
         height: u32,
-        dst_x: u32,
-        dst_y: u32,
+        dst_x: i64,
+        dst_y: i64,
         tint: Option<&Color>,
     ) {
-        for y in 0..height {
-            let src_start = (((src_y + y) * src_canvas.width()) + src_x) as usize;
-            let src_end = src_start + width as usize;
-            let dst_start = (((dst_y + y) * self.width()) + dst_x) as usize;
-            let dst_end = dst_start + width as usize;
-            let row = src_canvas.get_range(src_start..src_end);
+        if let Some((norm_dst_x, norm_dst_y, norm_width, norm_height)) =
+            self.normalize_rect(dst_x, dst_y, width, height)
+        {
+            for y in 0..norm_height {
+                let src_start = (((src_y + y) * src_canvas.width()) + src_x) as usize;
+                let src_end = src_start + u32::min(width, norm_width) as usize;
+                let dst_start = (((norm_dst_y + y) * self.width()) + norm_dst_x) as usize;
+                let dst_end = dst_start + norm_width as usize;
+                let row = src_canvas.get_range(src_start..src_end);
 
-            if let Some(tint) = tint {
-                self.set_range(
-                    dst_start..dst_end,
-                    &row.iter()
-                        .map(|c| {
-                            Color::from_rgb(
-                                (c.r as usize * tint.r as usize / 255 as usize) as u8,
-                                (c.g as usize * tint.g as usize / 255 as usize) as u8,
-                                (c.b as usize * tint.b as usize / 255 as usize) as u8,
-                            )
-                        })
-                        .collect::<Vec<Color>>(),
-                );
-            } else {
-                self.set_range(dst_start..dst_end, row);
+                if let Some(tint) = tint {
+                    self.set_range(
+                        dst_start..dst_end,
+                        &row.iter()
+                            .map(|c| {
+                                Color::from_rgb(
+                                    (c.r as usize * tint.r as usize / 255 as usize) as u8,
+                                    (c.g as usize * tint.g as usize / 255 as usize) as u8,
+                                    (c.b as usize * tint.b as usize / 255 as usize) as u8,
+                                )
+                            })
+                            .collect::<Vec<Color>>(),
+                    );
+                } else {
+                    self.set_range(dst_start..dst_end, row);
+                }
             }
         }
     }
@@ -369,11 +374,29 @@ pub trait Canvas {
         self.set_range(i..i + 1, std::slice::from_ref(color));
     }
 
-    fn in_bounds(&self, x: i64, y: i64) -> Option<(u32, u32)> {
-        if x < 0 || x >= self.width() as i64 || y < 0 || y >= self.height() as i64 {
+    fn normalize_rect(
+        &self,
+        x: i64,
+        y: i64,
+        width: u32,
+        height: u32,
+    ) -> Option<(u32, u32, u32, u32)> {
+        let width = width as i64;
+        let height = height as i64;
+        if x < -width || y < -height || x >= self.width() as i64 || y >= self.height() as i64 {
+            // Completely out of view
             None
         } else {
-            Some((x as u32, y as u32))
+            let norm_x = i64::max(0, x);
+            let norm_y = i64::max(0, y);
+            let norm_width = i64::min(width - (x - norm_x), self.width() as i64 - norm_x - 1);
+            let norm_height = i64::min(height - (y - norm_y), self.height() as i64 - norm_y - 1);
+            Some((
+                norm_x as u32,
+                norm_y as u32,
+                norm_width as u32,
+                norm_height as u32,
+            ))
         }
     }
 
@@ -395,6 +418,8 @@ pub trait Canvas {
 pub trait RenderableCanvas: Canvas {
     fn render(&mut self) -> Result<()>;
     fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
+    fn resize_surface(&mut self, width: u32, height: u32);
+    fn resize(&mut self, width: u32, height: u32);
 }
 
 pub struct InMemoryCanvas {
@@ -510,6 +535,19 @@ impl RenderableCanvas for PixelsCanvas {
             .context("letting pixels lib blit to screen")?;
         Ok(())
     }
+
+    fn resize_surface(&mut self, width: u32, height: u32) {
+        self.pixels
+            .resize_surface(width, height)
+            .expect("to be able to resize surface");
+    }
+
+    fn resize(&mut self, width: u32, height: u32) {
+        println!("Resize: {width}x{height}");
+        self.pixels
+            .resize_buffer(width, height)
+            .expect("to be able to resize buffer");
+    }
 }
 
 pub struct TaoContext {
@@ -523,15 +561,20 @@ impl TaoContext {
     }
 }
 
-pub fn init_tao_window(title: &str, width: u32, height: u32) -> Result<TaoContext> {
+pub fn init_tao_window(
+    title: &str,
+    min_width: u32,
+    min_height: u32,
+    resizable: bool,
+) -> Result<TaoContext> {
     let event_loop = EventLoop::new();
     let window = {
-        let size = LogicalSize::new(width, height);
+        let size = LogicalSize::new(min_width, min_height);
         WindowBuilder::new()
             .with_title(title)
             .with_inner_size(size)
             .with_min_inner_size(size)
-            .with_resizable(false)
+            .with_resizable(resizable)
             .build(&event_loop)?
     };
 
@@ -558,12 +601,12 @@ pub fn run_with_tao_and_pixels<State: 'static>(
     handle_event: TaoEventFn<State, PixelsCanvas>,
 ) -> ! {
     let mut pixel_loop = PixelLoop::new(120, state, canvas, update, render);
-    context.event_loop.run(move |event, window, control_flow| {
+    context.event_loop.run(move |event, _, control_flow| {
         handle_event(
             &mut pixel_loop.engine_state,
             &mut pixel_loop.state,
             &mut pixel_loop.canvas,
-            window,
+            &context.window,
             &event,
         )
         .context("handle user events")

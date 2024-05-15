@@ -137,7 +137,7 @@ pub const NINE: &'static [AnimStep] = &[
     AnimStep::from_numeric(6, 6, 2, 8, 2),
 ];
 
-fn from_digit(digit: u8) -> &'static [AnimStep] {
+pub fn from_digit(digit: u8) -> &'static [AnimStep] {
     match digit {
         0 => ZERO,
         1 => ONE,
