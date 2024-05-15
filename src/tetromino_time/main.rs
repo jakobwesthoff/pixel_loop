@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime};
 use anyhow::{Context, Result};
 use chrono::{DateTime, Local};
 use pixel_loop::{Canvas, Color, EngineEnvironment, RenderableCanvas};
-use tetromino::{AnimStep, Tetromino};
+use tetromino::{AnimStep, Tetromino, BLOCK_SIZE, DIGIT_HEIGHT, DIGIT_WIDTH};
 
 mod number_animations;
 mod tetromino;
@@ -25,7 +25,7 @@ impl Digit {
         }
     }
 
-    fn update(&mut self, ee: &mut EngineEnvironment, i: u32, char_width: u32) -> bool {
+    fn update(&mut self, ee: &mut EngineEnvironment, i: u32, digits_offset: &(i64, i64)) -> bool {
         match self.active {
             Some(ref mut tetromino) => {
                 tetromino.update(&mut ee.rand);
@@ -40,8 +40,8 @@ impl Digit {
                     self.active = Some(Tetromino::from_anim_step(
                         next_step,
                         &mut ee.rand,
-                        (i * char_width) as u32,
-                        200,
+                        (i * (DIGIT_WIDTH + BLOCK_SIZE)) as u32,
+                        -digits_offset.1,
                     ));
                     true
                 } else {
@@ -59,6 +59,8 @@ struct State {
     digits: Vec<Digit>,
     last_change: SystemTime,
     last_time_digits: Vec<u8>,
+    digits_offset: (i64, i64),
+    digits_size: (u32, u32),
 }
 
 impl Default for State {
@@ -70,6 +72,8 @@ impl Default for State {
             digits: Default::default(),
             last_change: SystemTime::UNIX_EPOCH,
             last_time_digits: Default::default(),
+            digits_offset: (0, 0),
+            digits_size: (DIGIT_WIDTH * 6 + BLOCK_SIZE * 5, DIGIT_HEIGHT),
         }
     }
 }
@@ -88,17 +92,17 @@ fn system_time_to_digits(time: &SystemTime) -> Vec<u8> {
 }
 
 fn main() -> Result<()> {
-    let width = 50;
-    let height = 50;
-    let scale = 1;
-
-    let context =
-        pixel_loop::init_tao_window("tetromino_time", width * scale, height * scale, true)
-            .context("create tao window")?;
-    let canvas =
-        pixel_loop::init_pixels(&context, width, height).context("initialize pixel canvas")?;
-
     let state = State::default();
+
+    let context = pixel_loop::init_tao_window(
+        "tetromino_time",
+        state.digits_size.0,
+        state.digits_size.1,
+        true,
+    )
+    .context("create tao window")?;
+    let canvas = pixel_loop::init_pixels(&context, state.digits_size.0, state.digits_size.1)
+        .context("initialize pixel canvas")?;
 
     pixel_loop::run_with_tao_and_pixels(
         state,
@@ -113,7 +117,7 @@ fn main() -> Result<()> {
 
             // UPDATE BEGIN
             for i in 0..s.digits.len() {
-                if s.digits[i].update(ee, i as u32, char_width) {
+                if s.digits[i].update(ee, i as u32, &s.digits_offset) {
                     s.last_change = SystemTime::now();
                 }
             }
@@ -151,12 +155,12 @@ fn main() -> Result<()> {
             canvas.clear_screen(&Color::from_rgb(0, 0, 0));
             for digit in &s.digits {
                 for tetromino in &digit.fallen {
-                    tetromino.draw(canvas);
+                    tetromino.draw(canvas, s.digits_offset);
                 }
             }
             for candidate in &s.digits {
                 if let Some(tetromino) = &candidate.active {
-                    tetromino.draw(canvas);
+                    tetromino.draw(canvas, s.digits_offset);
                 }
             }
             // RENDER END
@@ -186,6 +190,11 @@ fn main() -> Result<()> {
                     let logical_new_size = new_size.to_logical(window.scale_factor());
                     canvas.resize_surface(new_size.width, new_size.height);
                     canvas.resize(logical_new_size.width, logical_new_size.height);
+                    // Center the digits
+                    s.digits_offset = (
+                        ((logical_new_size.width - s.digits_size.0) / 2) as i64,
+                        ((logical_new_size.height - s.digits_size.1) / 2) as i64,
+                    );
                 }
                 _ => {}
             }

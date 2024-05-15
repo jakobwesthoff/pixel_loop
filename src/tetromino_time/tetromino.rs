@@ -2,6 +2,10 @@ use std::sync::OnceLock;
 
 use pixel_loop::{Canvas, Color, InMemoryCanvas};
 
+pub const BLOCK_SIZE: u32 = 16;
+pub const DIGIT_WIDTH: u32 = 6 * BLOCK_SIZE;
+pub const DIGIT_HEIGHT: u32 = 10 * BLOCK_SIZE;
+
 fn block_canvas() -> &'static InMemoryCanvas {
     static CANVAS: OnceLock<InMemoryCanvas> = OnceLock::new();
     CANVAS.get_or_init(|| {
@@ -93,7 +97,7 @@ impl AnimStep {
             tt: TetrominoType::from_num_type(num_type),
             tcolor: TetrominoColor::from_num_color(num_color),
             x_pos: x_pos as i64,
-            y_stop,
+            y_stop: y_stop - 8,
             rotation: num_rot,
         }
     }
@@ -140,10 +144,6 @@ impl TetrominoType {
         use TetrominoType::*;
         match self {
             Square => {
-                // canvas.set(x, y, color);
-                // canvas.set(x + 1, y, color);
-                // canvas.set(x, y - 1, color);
-                // canvas.set(x + 1, y - 1, color);
                 canvas.blit(block, x, y, Some(color));
                 canvas.blit(block, x + block.width() as i64, y, Some(color));
                 canvas.blit(block, x, y - block.width() as i64, Some(color));
@@ -469,29 +469,29 @@ impl Tetromino {
         step: AnimStep,
         rand: &mut R,
         x: u32,
-        y_offset: i64,
+        y_fall_offset: i64,
     ) -> Self {
         // @TODO: Do not reference block canvas here directly!
         // @TODO: Extract the falling into some sort of base behaviour?
         Self {
             tt: step.tt,
             x: x as i64 + step.x_pos * block_canvas().width() as i64,
-            y: y_offset,
+            y: y_fall_offset,
             tcolor: step.tcolor,
             rotation: step.rotation,
-            y_stop: y_offset + step.y_stop as i64 * block_canvas().height() as i64,
+            y_stop: step.y_stop as i64 * block_canvas().height() as i64,
             speed: rand.gen::<f64>() * 0.2 + 0.1,
             acceleration: rand.gen::<f64>() * 0.1 + 0.1,
             max_speed: 7.0,
         }
     }
 
-    pub fn draw<C: Canvas>(&self, canvas: &mut C) {
+    pub fn draw<C: Canvas>(&self, canvas: &mut C, offset: (i64, i64)) {
         self.tt.draw(
             canvas,
             block_canvas(),
-            self.x,
-            self.y,
+            self.x + offset.0,
+            self.y + offset.1,
             self.tcolor.as_color(),
             self.rotation,
         );

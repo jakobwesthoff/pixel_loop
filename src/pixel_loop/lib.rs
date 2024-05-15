@@ -389,8 +389,8 @@ pub trait Canvas {
         } else {
             let norm_x = i64::max(0, x);
             let norm_y = i64::max(0, y);
-            let norm_width = i64::min(width - (x - norm_x), self.width() as i64 - norm_x - 1);
-            let norm_height = i64::min(height - (y - norm_y), self.height() as i64 - norm_y - 1);
+            let norm_width = i64::min(width - (norm_x - x), self.width() as i64 - norm_x - 1);
+            let norm_height = i64::min(height - (norm_y - y), self.height() as i64 - norm_y - 1);
             Some((
                 norm_x as u32,
                 norm_y as u32,
@@ -404,13 +404,15 @@ pub trait Canvas {
         self.filled_rect(0, 0, self.width(), self.height(), color)
     }
 
-    fn filled_rect(&mut self, sx: u32, sy: u32, width: u32, height: u32, color: &Color) {
-        let color_row = vec![color.clone(); width as usize];
-        for y in sy..sy + height {
-            self.set_range(
-                (y * self.width() + sx) as usize..(y * self.width() + sx + width) as usize,
-                color_row.as_slice(),
-            );
+    fn filled_rect(&mut self, sx: i64, sy: i64, width: u32, height: u32, color: &Color) {
+        if let Some((sx, sy, width, height)) = self.normalize_rect(sx, sy, width, height) {
+            let color_row = vec![color.clone(); width as usize];
+            for y in sy..sy + height {
+                self.set_range(
+                    (y * self.width() + sx) as usize..(y * self.width() + sx + width) as usize,
+                    color_row.as_slice(),
+                );
+            }
         }
     }
 }
@@ -543,7 +545,6 @@ impl RenderableCanvas for PixelsCanvas {
     }
 
     fn resize(&mut self, width: u32, height: u32) {
-        println!("Resize: {width}x{height}");
         self.pixels
             .resize_buffer(width, height)
             .expect("to be able to resize buffer");
