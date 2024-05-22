@@ -6,6 +6,7 @@ use chrono::{DateTime, Local};
 use pixel_loop::{Canvas, Color, EngineEnvironment, RenderableCanvas};
 use tetromino::{AnimStep, Tetromino, BLOCK_SIZE, DIGIT_HEIGHT, DIGIT_WIDTH};
 
+mod character_animations;
 mod number_animations;
 mod tetromino;
 
@@ -20,6 +21,14 @@ impl Digit {
     fn from_digit(digit: u8) -> Self {
         Self {
             anim_queue: number_animations::from_digit(digit).to_vec().into(),
+            active: None,
+            fallen: vec![],
+        }
+    }
+
+    fn seperator() -> Self {
+        Self {
+            anim_queue: character_animations::COLON.to_vec().into(),
             active: None,
             fallen: vec![],
         }
@@ -53,12 +62,9 @@ impl Digit {
 }
 
 struct State {
-    updates_called: usize,
-    renders_called: usize,
-    time_passed: Duration,
     digits: Vec<Digit>,
     last_change: SystemTime,
-    last_time_digits: Vec<u8>,
+    last_time_digits: Vec<TimeElement>,
     digits_offset: (i64, i64),
     digits_size: (u32, u32),
 }
@@ -66,29 +72,35 @@ struct State {
 impl Default for State {
     fn default() -> Self {
         Self {
-            updates_called: Default::default(),
-            renders_called: Default::default(),
-            time_passed: Default::default(),
             digits: Default::default(),
             last_change: SystemTime::UNIX_EPOCH,
             last_time_digits: Default::default(),
             digits_offset: (0, 0),
-            digits_size: (DIGIT_WIDTH * 6 + BLOCK_SIZE * 5, DIGIT_HEIGHT),
+            digits_size: (DIGIT_WIDTH * 8 + BLOCK_SIZE * 5, DIGIT_HEIGHT),
         }
     }
 }
 
-fn system_time_to_digits(time: &SystemTime) -> Vec<u8> {
+#[derive(PartialEq)]
+enum TimeElement {
+    Digit(u8),
+    Seperator,
+}
+
+fn system_time_to_time_elements(time: &SystemTime) -> Vec<TimeElement> {
     let dt: DateTime<Local> = DateTime::from(*time);
-    dt.format("%H%M%S")
+    dt.format("%H:%M:%S")
         .to_string()
         .chars()
         .map(|c| {
-            c.to_string()
-                .parse::<u8>()
-                .expect("system time should always be parsable")
+            use TimeElement::*;
+            let result = c.to_string().parse::<u8>();
+            match result {
+                Ok(d) => Digit(d),
+                Err(_) => Seperator,
+            }
         })
-        .collect::<Vec<u8>>()
+        .collect::<Vec<TimeElement>>()
 }
 
 fn main() -> Result<()> {
@@ -109,8 +121,6 @@ fn main() -> Result<()> {
         context,
         canvas,
         |ee, s, canvas| {
-            s.updates_called += 1;
-
             // @TODO: take this somehow from the base block size or move the
             // spacing to the "font" somehow
             let char_width = 7 * 16;
@@ -127,17 +137,23 @@ fn main() -> Result<()> {
                 .expect("time to be going forward")
                 > Duration::from_secs(1)
             {
-                let now_digits = system_time_to_digits(&SystemTime::now());
-                if s.last_time_digits.len() < 6 {
+                let now_digits = system_time_to_time_elements(&SystemTime::now());
+                if s.last_time_digits.len() < 8 {
                     // No last time stored
                     s.digits = now_digits
                         .iter()
-                        .map(|d| Digit::from_digit(*d))
+                        .map(|te| match te {
+                            TimeElement::Digit(d) => Digit::from_digit(*d),
+                            TimeElement::Seperator => Digit::seperator(),
+                        })
                         .collect::<Vec<Digit>>();
                 } else {
                     for i in 0..s.last_time_digits.len() {
                         if s.last_time_digits[i] != now_digits[i] {
-                            s.digits[i] = Digit::from_digit(now_digits[i]);
+                            s.digits[i] = match now_digits[i] {
+                            TimeElement::Digit(d) => Digit::from_digit(d),
+                            TimeElement::Seperator => Digit::seperator(),
+                        }
                         }
                     }
                 }
@@ -164,16 +180,6 @@ fn main() -> Result<()> {
                 }
             }
             // RENDER END
-
-            s.renders_called += 1;
-            s.time_passed += dt;
-            if s.time_passed > Duration::from_secs(1) {
-                println!("Update FPS: {:.2}", s.updates_called as f64 / 1f64);
-                println!("Render FPS: {:.2}", s.renders_called as f64 / 1f64);
-                s.updates_called = 0;
-                s.renders_called = 0;
-                s.time_passed = Duration::default();
-            }
 
             canvas.render()?;
 
