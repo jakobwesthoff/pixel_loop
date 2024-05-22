@@ -1,7 +1,7 @@
 use std::collections::VecDeque;
 use std::time::{Duration, SystemTime};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Local};
 use pixel_loop::{Canvas, Color, EngineEnvironment, RenderableCanvas};
 use tetromino::{AnimStep, Tetromino, BLOCK_SIZE, DIGIT_HEIGHT, DIGIT_WIDTH};
@@ -62,6 +62,7 @@ impl Digit {
 }
 
 struct State {
+    mode: Mode,
     digits: Vec<Digit>,
     last_change: SystemTime,
     last_time_digits: Vec<TimeElement>,
@@ -69,9 +70,10 @@ struct State {
     digits_size: (u32, u32),
 }
 
-impl Default for State {
-    fn default() -> Self {
+impl State {
+    fn new(mode: Mode) -> Self {
         Self {
+            mode,
             digits: Default::default(),
             last_change: SystemTime::UNIX_EPOCH,
             last_time_digits: Default::default(),
@@ -87,10 +89,24 @@ enum TimeElement {
     Seperator,
 }
 
-fn system_time_to_time_elements(time: &SystemTime) -> Vec<TimeElement> {
-    let dt: DateTime<Local> = DateTime::from(*time);
-    dt.format("%H:%M:%S")
-        .to_string()
+fn system_time_to_time_elements(
+    time: &SystemTime,
+    earlier: Option<&SystemTime>,
+) -> Vec<TimeElement> {
+    let time_string = if let Some(earlier) = earlier {
+        let duration = time
+            .duration_since(*earlier)
+            .expect("provided earlier time is really earlier");
+        let hh = duration.as_secs() / 60 / 60;
+        let mm = (duration.as_secs() / 60) % 60;
+        let ss = duration.as_secs() % 60;
+        format!("{hh:02}:{mm:02}:{ss:02}")
+    } else {
+        let dt: DateTime<Local> = DateTime::from(*time);
+        dt.format("%H:%M:%S").to_string()
+    };
+
+    time_string
         .chars()
         .map(|c| {
             use TimeElement::*;
@@ -103,8 +119,29 @@ fn system_time_to_time_elements(time: &SystemTime) -> Vec<TimeElement> {
         .collect::<Vec<TimeElement>>()
 }
 
+enum Mode {
+    Clock,
+    Stopwatch(SystemTime),
+}
+
 fn main() -> Result<()> {
-    let state = State::default();
+    let mut mode = Mode::Clock;
+    let mut args = std::env::args();
+    let cmd = args.next().unwrap();
+
+    for arg in args {
+        match arg.as_str() {
+            "--stopwatch" => mode = Mode::Stopwatch(SystemTime::now()),
+            "--clock" => mode = Mode::Clock,
+            _ => {
+                eprintln!("Usage:");
+                eprintln!("  {cmd} [--stopwatch|--clock]");
+                return Err(anyhow!("Unknown argument {arg}"));
+            }
+        }
+    }
+
+    let state = State::new(mode);
 
     let context = pixel_loop::init_tao_window(
         "tetromino_time",
@@ -137,7 +174,13 @@ fn main() -> Result<()> {
                 .expect("time to be going forward")
                 > Duration::from_secs(1)
             {
-                let now_digits = system_time_to_time_elements(&SystemTime::now());
+                let now_digits = match s.mode {
+                    Mode::Clock => system_time_to_time_elements(&SystemTime::now(), None),
+                    Mode::Stopwatch(ref offset) => {
+                        system_time_to_time_elements(&SystemTime::now(), Some(offset))
+                    }
+                };
+
                 if s.last_time_digits.len() < 8 {
                     // No last time stored
                     s.digits = now_digits
@@ -151,9 +194,9 @@ fn main() -> Result<()> {
                     for i in 0..s.last_time_digits.len() {
                         if s.last_time_digits[i] != now_digits[i] {
                             s.digits[i] = match now_digits[i] {
-                            TimeElement::Digit(d) => Digit::from_digit(d),
-                            TimeElement::Seperator => Digit::seperator(),
-                        }
+                                TimeElement::Digit(d) => Digit::from_digit(d),
+                                TimeElement::Seperator => Digit::seperator(),
+                            }
                         }
                     }
                 }
