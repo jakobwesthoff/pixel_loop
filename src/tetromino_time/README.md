@@ -1,9 +1,8 @@
 # 🎮 Tetromino Time 🕙
 
-**WORK IN PROGRESS**
-
 ## Overview
-Tetromino Time is a timer based on [pixel_loop](http://github.com/jakobwesthoff/pixel_loop), utilizing Tetrominos to "build up the time to display".
+Tetromino Time is a clock/stopwatch based on [pixel_loop](http://github.com/jakobwesthoff/pixel_loop), utilizing Tetrominos to "build up the time to display".
+<center><img src="thumbnail.png" width="75%"></center>
 
 ## Acknowledgement
 
@@ -16,6 +15,6 @@ Kudos to Mike for his outstanding work and the inspiration provided!
 To build the Tetromino Timer in conjunction with the Pixel Loop engine, refer to the build instructions outlined in the main Pixel Loop repository.
 
 ## Usage
-Upon successful build, execute the `tetromino_time` binary to initiate the timer.
+Upon successful build, execute the `tetromino_time` binary to initiate the clock.
 
-**Note:** This project is currently under development and is not fully operational at this stage.
+Use the `--stopwatch` argument, to spawn it as a timer/stopwatch.
