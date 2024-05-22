@@ -18,6 +18,11 @@ Currently, there are the following:
 
 * [pixel_sand](src/pixel_sand/README.md) - A sand movement simulator.
 * [tetromino_time](src/tetromino_time/README.md) - A Tetromino based timer.
+## Gallery
+
+<img src="src/pixel_sand/thumbnail.png" width="75%" />
+
+<img src="src/tetromino_time/thumbnail.png" width="75%" />
 
 ## Build Instructions
 
