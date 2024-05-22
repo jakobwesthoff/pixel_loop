@@ -5,6 +5,8 @@
 ## Overview
 Pixel Sand is a simple simulator of falling sand using the Pixel Loop engine. It is currently in a very early stage of development and will be further developed over time.
 
+<img src="thumbnail.png" width="75%" style="margin: auto" />
+
 ## Features
 - Simulates the movement of sand particles
 - Utilizes the Pixel Loop engine for rendering
