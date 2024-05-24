@@ -143,17 +143,17 @@ fn main() -> Result<()> {
 
     let state = State::new(mode);
 
-    let context = pixel_loop::init_tao_window(
+    let context = pixel_loop::tao::init_window(
         "tetromino_time",
         state.digits_size.0,
         state.digits_size.1,
         true,
     )
     .context("create tao window")?;
-    let canvas = pixel_loop::init_pixels(&context, state.digits_size.0, state.digits_size.1)
+    let canvas = pixel_loop::tao::init_pixels(&context, state.digits_size.0, state.digits_size.1)
         .context("initialize pixel canvas")?;
 
-    pixel_loop::run_with_tao_and_pixels(
+    pixel_loop::tao::run(
         state,
         context,
         canvas,
