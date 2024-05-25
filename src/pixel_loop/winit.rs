@@ -50,7 +50,11 @@ pub fn init_window(
             .build(&event_loop)?
     };
 
-    Ok(WinitContext { event_loop, input_helper, window })
+    Ok(WinitContext {
+        event_loop,
+        input_helper,
+        window,
+    })
 }
 
 pub fn init_pixels(context: &WinitContext, width: u32, height: u32) -> Result<PixelsCanvas> {
@@ -91,7 +95,7 @@ pub fn run<State: 'static>(
                     .next_loop()
                     .context("run next pixel loop")
                     .unwrap();
-            },
+            }
             Event::WindowEvent {
                 event: win_event, ..
             } => match win_event {

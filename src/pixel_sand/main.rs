@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use pixel_loop::{Canvas, Color, HslColor, RenderableCanvas};
 use rand::Rng;
 use std::time::Duration;
-use winit::event::{WindowEvent, ElementState, VirtualKeyCode, MouseButton, KeyboardInput, Event};
+use winit::event::{ElementState, Event, KeyboardInput, MouseButton, VirtualKeyCode, WindowEvent};
 
 #[derive(Clone, PartialEq)]
 struct Sand {
@@ -408,8 +408,8 @@ fn main() -> Result<()> {
 
     let context = pixel_loop::winit::init_window("pixel loop", width, height, false)
         .context("create tao window")?;
-    let canvas =
-        pixel_loop::winit::init_pixels(&context, width, height).context("initialize pixel canvas")?;
+    let canvas = pixel_loop::winit::init_pixels(&context, width, height)
+        .context("initialize pixel canvas")?;
 
     let state = State::new(width, height);
 
@@ -543,7 +543,7 @@ fn main() -> Result<()> {
                     WindowEvent::KeyboardInput { input, .. } => match input {
                         KeyboardInput {
                             state: ElementState::Released,
-                                virtual_keycode: Some(VirtualKeyCode::W),
+                            virtual_keycode: Some(VirtualKeyCode::W),
                             ..
                         } => {
                             s.w_is_pressed = true;
