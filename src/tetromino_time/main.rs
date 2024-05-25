@@ -143,17 +143,17 @@ fn main() -> Result<()> {
 
     let state = State::new(mode);
 
-    let context = pixel_loop::tao::init_window(
+    let context = pixel_loop::winit::init_window(
         "tetromino_time",
         state.digits_size.0,
         state.digits_size.1,
         true,
     )
     .context("create tao window")?;
-    let canvas = pixel_loop::tao::init_pixels(&context, state.digits_size.0, state.digits_size.1)
+    let canvas = pixel_loop::winit::init_pixels(&context, state.digits_size.0, state.digits_size.1)
         .context("initialize pixel canvas")?;
 
-    pixel_loop::tao::run(
+    pixel_loop::winit::run(
         state,
         context,
         canvas,
@@ -228,14 +228,10 @@ fn main() -> Result<()> {
 
             Ok(())
         },
-        |ee, s, canvas, window, event| {
-            use tao::event::Event::*;
-            use tao::event::WindowEvent::*;
-            match event {
-                WindowEvent {
-                    event: Resized(new_size),
-                    ..
-                } => {
+        |ee, s, canvas, window, input, event| {
+            if input.update(&event) {
+                // Resize the window
+                if let Some(new_size) = input.window_resized() {
                     let logical_new_size = new_size.to_logical(window.scale_factor());
                     canvas.resize_surface(new_size.width, new_size.height);
                     canvas.resize(logical_new_size.width, logical_new_size.height);
@@ -245,9 +241,8 @@ fn main() -> Result<()> {
                         ((logical_new_size.height - s.digits_size.1) / 2) as i64,
                     );
                 }
-                _ => {}
             }
             Ok(())
-        },
+        }
     );
 }

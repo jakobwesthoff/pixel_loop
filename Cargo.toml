@@ -23,7 +23,8 @@ pixels = "0.13.0"
 rand = "0.8.5"
 rand_xoshiro = "0.6.0"
 stb_image = "0.3.0"
-tao = { version = "0.27.1", features = ["rwh_05"], default-features = false }
+winit = "0.28.0"
+winit_input_helper = "0.14.0"
 
 [profile.dev]
 opt-level = 1

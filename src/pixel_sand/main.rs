@@ -2,8 +2,7 @@ use anyhow::{Context, Result};
 use pixel_loop::{Canvas, Color, HslColor, RenderableCanvas};
 use rand::Rng;
 use std::time::Duration;
-use tao::event::{ElementState, Event, KeyEvent, MouseButton, WindowEvent};
-use tao::keyboard::Key;
+use winit::event::{WindowEvent, ElementState, VirtualKeyCode, MouseButton, KeyboardInput, Event};
 
 #[derive(Clone, PartialEq)]
 struct Sand {
@@ -407,14 +406,14 @@ fn main() -> Result<()> {
     let width = 640;
     let height = 480;
 
-    let context = pixel_loop::tao::init_window("pixel loop", width, height, false)
+    let context = pixel_loop::winit::init_window("pixel loop", width, height, false)
         .context("create tao window")?;
     let canvas =
-        pixel_loop::tao::init_pixels(&context, width, height).context("initialize pixel canvas")?;
+        pixel_loop::winit::init_pixels(&context, width, height).context("initialize pixel canvas")?;
 
     let state = State::new(width, height);
 
-    pixel_loop::tao::run(
+    pixel_loop::winit::run(
         state,
         context,
         canvas,
@@ -536,22 +535,22 @@ fn main() -> Result<()> {
 
             Ok(())
         },
-        |e, s, canvas, _, event| {
+        |e, s, canvas, _, input, event| {
             match event {
                 Event::WindowEvent {
                     event: win_event, ..
                 } => match win_event {
-                    WindowEvent::KeyboardInput { event, .. } => match event {
-                        KeyEvent {
+                    WindowEvent::KeyboardInput { input, .. } => match input {
+                        KeyboardInput {
                             state: ElementState::Released,
-                            logical_key: Key::Character("w"),
+                                virtual_keycode: Some(VirtualKeyCode::W),
                             ..
                         } => {
                             s.w_is_pressed = true;
                         }
-                        KeyEvent {
+                        KeyboardInput {
                             state: ElementState::Released,
-                            logical_key: Key::Character("f"),
+                            virtual_keycode: Some(VirtualKeyCode::F),
                             ..
                         } => {
                             s.f_is_pressed = true;
