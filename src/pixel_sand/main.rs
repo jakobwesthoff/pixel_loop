@@ -138,6 +138,7 @@ impl ParticleGrid {
         probability: f64,
     ) {
         let r = r as i64;
+        let r2 = r * r;
 
         for dy in -r..=r {
             for dx in -r..=r {
@@ -148,7 +149,7 @@ impl ParticleGrid {
                     continue;
                 }
 
-                if dx * dx + dy * dy <= r * r {
+                if dx * dx + dy * dy <= r2 {
                     if rand.gen::<f64>() < probability {
                         let particle = Particle::Sand(Sand::new(rand, base_color));
                         self.set_particle(x as u32, y as u32, particle);
