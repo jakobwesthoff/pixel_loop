@@ -16,9 +16,14 @@ path = "src/tetromino_time/main.rs"
 name = "pixel_sand"
 path = "src/pixel_sand/main.rs"
 
+[[bin]]
+name = "trivial_cli_demo"
+path = "src/trivial_cli_demo/main.rs"
+
 [dependencies]
 anyhow = "1.0.82"
 chrono = "0.4.38"
+crossterm = "0.28.1"
 pixels = "0.13.0"
 rand = "0.8.5"
 rand_xoshiro = "0.6.0"
