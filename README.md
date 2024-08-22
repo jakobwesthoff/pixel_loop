@@ -18,6 +18,8 @@ Currently, there are the following:
 
 * [pixel_sand](src/pixel_sand/README.md) - A sand movement simulator.
 * [tetromino_time](src/tetromino_time/README.md) - A Tetromino based timer.
+* [trivial_cli_demo](src/trivial_cli_demo/README.md) - A trivial demo showing the CLI/Shell Unicode and ANSI based output driver.
+
 ## Gallery
 
 <img src="src/pixel_sand/thumbnail.png" width="75%" />
