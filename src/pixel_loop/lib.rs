@@ -1,6 +1,7 @@
 //@TODO: Make conditional compiled based on feature
 //pub mod tao;
 pub mod winit;
+pub mod crossterm_canvas;
 
 use anyhow::{anyhow, Context, Result};
 use pixels::Pixels;
