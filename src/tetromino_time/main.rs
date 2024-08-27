@@ -154,6 +154,7 @@ fn main() -> Result<()> {
         .context("initialize pixel canvas")?;
 
     pixel_loop::winit::run(
+        120,
         state,
         context,
         canvas,

@@ -415,6 +415,7 @@ fn main() -> Result<()> {
     let state = State::new(width, height);
 
     pixel_loop::winit::run(
+        120,
         state,
         context,
         canvas,

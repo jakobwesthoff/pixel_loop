@@ -104,12 +104,13 @@ where
 }
 
 pub fn run<State, CanvasImpl: RenderableCanvas>(
+    updates_per_second: usize,
     state: State,
     canvas: CanvasImpl,
     update: UpdateFn<State, CanvasImpl>,
     render: RenderFn<State, CanvasImpl>,
 ) -> Result<()> {
-    let mut pixel_loop = PixelLoop::new(120, state, canvas, update, render);
+    let mut pixel_loop = PixelLoop::new(updates_per_second, state, canvas, update, render);
     loop {
         pixel_loop.next_loop().context("run next pixel loop")?;
     }
