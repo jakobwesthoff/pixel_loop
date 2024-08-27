@@ -5,10 +5,16 @@ use crossterm::terminal;
 use pixel_loop::crossterm_canvas::CrosstermCanvas;
 use pixel_loop::{Canvas, Color, RenderableCanvas};
 
-struct State {
+struct Box {
     box_position: (i64, i64),
     box_direction: (i64, i64),
     box_size: (u32, u32),
+    color: Color,
+    shadow_color: Color,
+}
+
+struct State {
+    boxes: Vec<Box>,
     frame_count: usize,
     start_frame_time: SystemTime,
 }
@@ -16,9 +22,36 @@ struct State {
 impl State {
     fn new(width: u32, height: u32) -> Self {
         Self {
-            box_position: Default::default(),
-            box_direction: (1, 1),
-            box_size: (20, 10),
+            boxes: vec![
+                Box {
+                    box_position: (0,0),
+                    box_direction: (1, 1),
+                    box_size: (20, 10),
+                    color: Color::from_rgb(255, 255, 128),
+                    shadow_color: Color::from_rgb(128, 128, 64),
+                },
+                Box {
+                    box_position: (0,4),
+                    box_direction: (2, 1),
+                    box_size: (5, 5),
+                    color: Color::from_rgb(128, 255, 128),
+                    shadow_color: Color::from_rgb(64, 128, 64),
+                },
+                Box {
+                    box_position: (0, 23),
+                    box_direction: (1, 2),
+                    box_size: (20, 20),
+                    color: Color::from_rgb(255, 128, 64),
+                    shadow_color: Color::from_rgb(128, 64, 32),
+                },
+                Box {
+                    box_position: (0, 10),
+                    box_direction: (2, 2),
+                    box_size: (10, 10),
+                    color: Color::from_rgb(255, 0, 128),
+                    shadow_color: Color::from_rgb(128, 0, 64),
+                },
+            ],
             frame_count: 0,
             start_frame_time: SystemTime::now(),
         }
@@ -44,23 +77,25 @@ fn main() -> Result<()> {
             let width = canvas.width();
             let height = canvas.height();
 
-            let (mut px, mut py) = s.box_position;
-            let (mut dx, mut dy) = s.box_direction;
-            let (sx, sy) = s.box_size;
-            px += dx;
-            py += dy;
-
-            if px < 0 || px + sx as i64 >= width as i64 {
-                dx *= -1;
+            for b in s.boxes.iter_mut() {
+                let (mut px, mut py) = b.box_position;
+                let (mut dx, mut dy) = b.box_direction;
+                let (sx, sy) = b.box_size;
                 px += dx;
-            }
-            if py < 0 || py + sy as i64 >= height as i64 {
-                dy *= -1;
                 py += dy;
-            }
 
-            s.box_position = (px, py);
-            s.box_direction = (dx, dy);
+                if px < 0 || px + sx as i64 >= width as i64 {
+                    dx *= -1;
+                    px += dx;
+                }
+                if py < 0 || py + sy as i64 >= height as i64 {
+                    dy *= -1;
+                    py += dy;
+                }
+
+                b.box_position = (px, py);
+                b.box_direction = (dx, dy);
+            }
 
             Ok(())
         },
@@ -69,26 +104,26 @@ fn main() -> Result<()> {
                 s.frame_count += 1;
             }
 
-            let yellow = Color::from_rgb(255, 255, 128);
-            let dark_yellow = Color::from_rgb(128, 128, 64);
-
             // RENDER BEGIN
             canvas.clear_screen(&Color::from_rgb(0, 0, 0));
 
-            canvas.filled_rect(
-                s.box_position.0 + 2,
-                s.box_position.1 + 2,
-                s.box_size.0,
-                s.box_size.1,
-                &dark_yellow,
-            );
-            canvas.filled_rect(
-                s.box_position.0,
-                s.box_position.1,
-                s.box_size.0,
-                s.box_size.1,
-                &yellow,
-            );
+            for b in s.boxes.iter() {
+                canvas.filled_rect(
+                    b.box_position.0 + 2,
+                    b.box_position.1 + 2,
+                    b.box_size.0,
+                    b.box_size.1,
+                    &b.shadow_color,
+                );
+                canvas.filled_rect(
+                    b.box_position.0,
+                    b.box_position.1,
+                    b.box_size.0,
+                    b.box_size.1,
+                    &b.color,
+                );
+            }
+
             // RENDER END
 
             canvas.render()?;
