@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use crossterm::terminal;
 use pixel_loop::crossterm_canvas::CrosstermCanvas;
 use pixel_loop::{Canvas, Color, RenderableCanvas};
@@ -31,6 +31,7 @@ fn main() -> Result<()> {
     eprintln!("Render size: {width}x{height}");
 
     pixel_loop::run(
+        60,
         state,
         canvas,
         |e, s, canvas| {
@@ -39,7 +40,7 @@ fn main() -> Result<()> {
 
             let (mut px, mut py) = s.box_position;
             let (mut dx, mut dy) = s.box_direction;
-            let (sx,sy) = s.box_size;
+            let (sx, sy) = s.box_size;
             px += dx;
             py += dy;
 

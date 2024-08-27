@@ -69,6 +69,7 @@ pub fn init_pixels(context: &WinitContext, width: u32, height: u32) -> Result<Pi
 }
 
 pub fn run<State: 'static>(
+    updates_per_second: usize,
     state: State,
     mut context: WinitContext,
     canvas: PixelsCanvas,
@@ -76,7 +77,7 @@ pub fn run<State: 'static>(
     render: RenderFn<State, PixelsCanvas>,
     handle_event: WinitEventFn<State, PixelsCanvas>,
 ) -> ! {
-    let mut pixel_loop = PixelLoop::new(120, state, canvas, update, render);
+    let mut pixel_loop = PixelLoop::new(updates_per_second, state, canvas, update, render);
 
     context.event_loop.run(move |event, _, control_flow| {
         handle_event(
