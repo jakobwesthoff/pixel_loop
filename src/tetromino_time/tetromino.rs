@@ -1,6 +1,7 @@
 use std::sync::OnceLock;
 
-use pixel_loop::{Canvas, Color, InMemoryCanvas};
+use pixel_loop::canvas::InMemoryCanvas;
+use pixel_loop::{Canvas, Color};
 
 pub const BLOCK_SIZE: u32 = 16;
 pub const DIGIT_WIDTH: u32 = 6 * BLOCK_SIZE;
