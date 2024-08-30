@@ -63,7 +63,7 @@ fn main() -> Result<()> {
     let width = terminal_width;
     let height = terminal_height * 2;
 
-    let canvas = CrosstermCanvas::new(width, height);
+    let canvas = CrosstermCanvas::new(width, height).with_refresh_limit(120);
 
     let state = State::new(width as u32, height as u32);
 
