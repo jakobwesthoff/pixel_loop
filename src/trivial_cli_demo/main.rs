@@ -2,7 +2,7 @@ use std::time::SystemTime;
 
 use anyhow::Result;
 use crossterm::terminal;
-use pixel_loop::crossterm_canvas::CrosstermCanvas;
+use pixel_loop::canvas::CrosstermCanvas;
 use pixel_loop::{Canvas, Color, RenderableCanvas};
 
 struct Box {
@@ -24,14 +24,14 @@ impl State {
         Self {
             boxes: vec![
                 Box {
-                    box_position: (0,0),
+                    box_position: (0, 0),
                     box_direction: (1, 1),
                     box_size: (20, 10),
                     color: Color::from_rgb(255, 255, 128),
                     shadow_color: Color::from_rgb(128, 128, 64),
                 },
                 Box {
-                    box_position: (0,4),
+                    box_position: (0, 4),
                     box_direction: (2, 1),
                     box_size: (5, 5),
                     color: Color::from_rgb(128, 255, 128),
