@@ -1,4 +1,6 @@
-use super::{EngineEnvironment, PixelLoop, PixelsCanvas, RenderFn, UpdateFn};
+use crate::canvas::PixelsCanvas;
+
+use super::{EngineEnvironment, PixelLoop, RenderFn, UpdateFn};
 use anyhow::{Context, Result};
 use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
