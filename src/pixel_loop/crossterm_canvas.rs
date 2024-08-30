@@ -1,14 +1,17 @@
 use crate::{Canvas, Color, RenderableCanvas};
 use anyhow::Result;
-use crossterm::style::{self, Print, ResetColor, SetColors};
-use crossterm::{cursor, ExecutableCommand, QueueableCommand};
+use crossterm::style::{self, Print, SetColors};
+use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
+use std::time::{Duration, Instant};
 
 pub struct CrosstermCanvas {
     width: u16,
     height: u16,
     buffer: Vec<Color>,
     previous_buffer: Vec<Color>,
+    frame_limit_nanos: u64,
+    last_frame_time: Instant,
 }
 
 impl CrosstermCanvas {
@@ -18,6 +21,15 @@ impl CrosstermCanvas {
             height,
             buffer: vec![Color::from_rgb(0, 0, 0); width as usize * height as usize],
             previous_buffer: vec![Color::from_rgba(0, 0, 0, 0); width as usize * height as usize],
+            frame_limit_nanos: 1_000_000_000 / 60,
+            last_frame_time: Instant::now(),
+        }
+    }
+
+    pub fn with_refresh_limit(self, limit: usize) -> Self {
+        Self {
+            frame_limit_nanos: 1_000_000_000u64 / limit as u64,
+            ..self
         }
     }
 }
@@ -58,8 +70,8 @@ impl Patch {
     }
 
     pub fn apply<W: Write>(&self, writer: &mut W) -> Result<()> {
-        writer.queue(cursor::MoveTo(self.position.0, self.position.1))?;
-        writer.queue(Print(std::str::from_utf8(&self.data)?))?;
+        writer.execute(cursor::MoveTo(self.position.0, self.position.1))?;
+        writer.write_all(&self.data)?;
         Ok(())
     }
 
@@ -131,19 +143,67 @@ impl CrosstermCanvas {
 
         return Ok(patches);
     }
+
+    fn elapsed_since_last_frame(&self) -> u64 {
+        // The return value of as_nanos is a u128, but a Duration from_nanos is
+        // created with a u64. We are therefore casting this value into a u64 or
+        // use the frame_limit_nanos as a default. Because if we are out of
+        // limits (which shouldn't really happen), we need to directly rerender
+        // anyways.
+        self.last_frame_time
+            .elapsed()
+            .as_nanos()
+            .try_into()
+            .unwrap_or(self.frame_limit_nanos)
+    }
+
+    fn wait_for_next_frame(&mut self) {
+        fn wait_half_using_thread_sleep(elapsed_nanos: u64, frame_limit_nanos: u64) {
+            let minimum_thread_sleep_nanos = 4_000_000;
+            if elapsed_nanos < frame_limit_nanos
+                && (frame_limit_nanos - elapsed_nanos) / 2 > minimum_thread_sleep_nanos
+            {
+                std::thread::sleep(Duration::from_nanos(
+                    (frame_limit_nanos - elapsed_nanos) / 2,
+                ));
+            }
+        }
+        fn wait_using_spinlock(elapsed_nanos: u64, frame_limit_nanos: u64) {
+            if elapsed_nanos < frame_limit_nanos {
+                let wait_time = frame_limit_nanos - elapsed_nanos;
+                let target_time = Instant::now() + Duration::from_nanos(wait_time);
+                while Instant::now() < target_time {
+                    std::hint::spin_loop();
+                }
+            }
+        }
+        // Sleep the thread for have of the wait time needed.
+        // Unfortunately sleeping the frame is quite impercise, therefore we
+        // can't wait exactly the needed amount of time. We only wait for 1/2
+        // of the time using a thread sleep.
+        wait_half_using_thread_sleep(self.elapsed_since_last_frame(), self.frame_limit_nanos);
+        // The rest of the time we precisely wait using a spinlock
+        wait_using_spinlock(self.elapsed_since_last_frame(), self.frame_limit_nanos);
+
+        self.last_frame_time = Instant::now();
+    }
 }
 
 impl RenderableCanvas for CrosstermCanvas {
     fn render(&mut self) -> anyhow::Result<()> {
-        let mut stdout = std::io::stdout();
+        self.wait_for_next_frame();
 
-        stdout.queue(cursor::Hide)?;
+        let mut stdout = std::io::stdout();
+        let mut buffer = Vec::new();
+
+        buffer.execute(cursor::Hide)?;
         let patches = self.calculate_patches()?;
         for patch in patches {
-            patch.apply(&mut stdout)?;
+            patch.apply(&mut buffer)?;
         }
-        stdout.queue(cursor::MoveTo(self.width, self.height / 2))?;
-        stdout.queue(cursor::Show)?;
+        buffer.execute(cursor::MoveTo(self.width, self.height / 2))?;
+        buffer.execute(cursor::Show)?;
+        stdout.write_all(&buffer)?;
         stdout.flush()?;
 
         self.previous_buffer.copy_from_slice(&self.buffer);
