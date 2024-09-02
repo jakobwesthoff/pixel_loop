@@ -1,19 +1,25 @@
 //@TODO: Make conditional compiled based on feature
 //pub mod tao;
-pub mod winit;
 pub mod canvas;
+pub mod input;
+pub mod winit;
 
-use anyhow::{anyhow, Context, Result};
-use pixels::Pixels;
+use anyhow::{Context, Result};
+use input::InputState;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;
 use std::ops::Range;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-type UpdateFn<State, CanvasImpl> =
-    fn(&mut EngineEnvironment, &mut State, &mut CanvasImpl) -> Result<()>;
-type RenderFn<State, CanvasImpl> =
-    fn(&mut EngineEnvironment, &mut State, &mut CanvasImpl, Duration) -> Result<()>;
+type UpdateFn<State, InputStateImpl, CanvasImpl> =
+    fn(&mut EngineEnvironment, &mut State, &InputStateImpl, &mut CanvasImpl) -> Result<()>;
+type RenderFn<State, InputStateImpl, CanvasImpl> = fn(
+    &mut EngineEnvironment,
+    &mut State,
+    &InputStateImpl,
+    &mut CanvasImpl,
+    Duration,
+) -> Result<()>;
 
 pub struct EngineEnvironment {
     pub rand: Box<dyn rand::RngCore>,
@@ -31,28 +37,31 @@ impl Default for EngineEnvironment {
     }
 }
 
-struct PixelLoop<State, CanvasImpl: RenderableCanvas> {
+struct PixelLoop<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas> {
     accumulator: Duration,
     current_time: Instant,
     last_time: Instant,
     update_timestep: Duration,
     state: State,
+    input_state: InputStateImpl,
     engine_state: EngineEnvironment,
     canvas: CanvasImpl,
-    update: UpdateFn<State, CanvasImpl>,
-    render: RenderFn<State, CanvasImpl>,
+    update: UpdateFn<State, InputStateImpl, CanvasImpl>,
+    render: RenderFn<State, InputStateImpl, CanvasImpl>,
 }
 
-impl<State, CanvasImpl> PixelLoop<State, CanvasImpl>
+impl<State, InputStateImpl, CanvasImpl> PixelLoop<State, InputStateImpl, CanvasImpl>
 where
     CanvasImpl: RenderableCanvas,
+    InputStateImpl: InputState,
 {
     pub fn new(
         update_fps: usize,
         state: State,
+        input_state: InputStateImpl,
         canvas: CanvasImpl,
-        update: UpdateFn<State, CanvasImpl>,
-        render: RenderFn<State, CanvasImpl>,
+        update: UpdateFn<State, InputStateImpl, CanvasImpl>,
+        render: RenderFn<State, InputStateImpl, CanvasImpl>,
     ) -> Self {
         if update_fps == 0 {
             panic!("Designated FPS for updates needs to be > 0");
@@ -67,10 +76,16 @@ where
             ),
             engine_state: EngineEnvironment::default(),
             state,
+            input_state,
             canvas,
             update,
             render,
         }
+    }
+
+    pub fn begin(&mut self) -> Result<()> {
+        self.input_state.begin()?;
+        Ok(())
     }
 
     // Inpsired by: https://gafferongames.com/post/fix_your_timestep/
@@ -87,13 +102,20 @@ where
         }
 
         while self.accumulator > self.update_timestep {
-            (self.update)(&mut self.engine_state, &mut self.state, &mut self.canvas)?;
+            (self.input_state).next_loop()?;
+            (self.update)(
+                &mut self.engine_state,
+                &mut self.state,
+                &self.input_state,
+                &mut self.canvas,
+            )?;
             self.accumulator -= self.update_timestep;
         }
 
         (self.render)(
             &mut self.engine_state,
             &mut self.state,
+            &self.input_state,
             &mut self.canvas,
             dt,
         )?;
@@ -101,19 +123,36 @@ where
         self.accumulator += dt;
         Ok(())
     }
+
+    pub fn finish(&mut self) -> Result<()> {
+        self.input_state.finish()?;
+        Ok(())
+    }
 }
 
-pub fn run<State, CanvasImpl: RenderableCanvas>(
+pub fn run<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas>(
     updates_per_second: usize,
     state: State,
+    input_state: InputStateImpl,
     canvas: CanvasImpl,
-    update: UpdateFn<State, CanvasImpl>,
-    render: RenderFn<State, CanvasImpl>,
+    update: UpdateFn<State, InputStateImpl, CanvasImpl>,
+    render: RenderFn<State, InputStateImpl, CanvasImpl>,
 ) -> Result<()> {
-    let mut pixel_loop = PixelLoop::new(updates_per_second, state, canvas, update, render);
+    let mut pixel_loop = PixelLoop::new(
+        updates_per_second,
+        state,
+        input_state,
+        canvas,
+        update,
+        render,
+    );
+
+    pixel_loop.begin()?;
     loop {
         pixel_loop.next_loop().context("run next pixel loop")?;
     }
+    // @TODO: Allow pixel_loop loop to end properly, to be able to reach this code.
+    // pixel_loop.finish()?;
 }
 
 #[repr(C)]
@@ -417,5 +456,3 @@ pub trait RenderableCanvas: Canvas {
     fn resize_surface(&mut self, width: u32, height: u32);
     fn resize(&mut self, width: u32, height: u32);
 }
-
-

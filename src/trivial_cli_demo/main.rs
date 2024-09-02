@@ -3,7 +3,9 @@ use std::time::SystemTime;
 use anyhow::Result;
 use crossterm::terminal;
 use pixel_loop::canvas::CrosstermCanvas;
+use pixel_loop::input::{CrosstermInputState, KeyboardKey, KeyboardState};
 use pixel_loop::{Canvas, Color, RenderableCanvas};
+use rand::Rng;
 
 struct Box {
     box_position: (i64, i64),
@@ -63,19 +65,32 @@ fn main() -> Result<()> {
     let width = terminal_width;
     let height = terminal_height * 2;
 
-    let canvas = CrosstermCanvas::new(width, height).with_refresh_limit(120);
+    let mut canvas = CrosstermCanvas::new(width, height);
+    canvas.set_refresh_limit(120);
 
     let state = State::new(width as u32, height as u32);
+    let input = CrosstermInputState::new();
 
     eprintln!("Render size: {width}x{height}");
 
     pixel_loop::run(
         60,
         state,
+        input,
         canvas,
-        |e, s, canvas| {
+        |e, s, input, canvas| {
             let width = canvas.width();
             let height = canvas.height();
+
+            if input.is_key_pressed(KeyboardKey::Space) {
+                for b in s.boxes.iter_mut() {
+                    b.color = Color::from_rgb(e.rand.gen(), e.rand.gen(), e.rand.gen());
+                    let mut shadow_color = b.color.as_hsl();
+                    shadow_color.s = (shadow_color.s - 20.0).clamp(0.0, 100.0);
+                    shadow_color.l = (shadow_color.l - 20.0).clamp(0.0, 100.0);
+                    b.shadow_color = Color::from(shadow_color);
+                }
+            }
 
             for b in s.boxes.iter_mut() {
                 let (mut px, mut py) = b.box_position;
@@ -99,7 +114,7 @@ fn main() -> Result<()> {
 
             Ok(())
         },
-        |e, s, canvas, dt| {
+        |e, s, i, canvas, dt| {
             if cfg!(feature = "benchmark_fps") {
                 s.frame_count += 1;
             }
