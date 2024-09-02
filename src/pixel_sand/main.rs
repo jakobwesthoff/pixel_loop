@@ -417,9 +417,12 @@ fn main() -> Result<()> {
     pixel_loop::winit::run(
         120,
         state,
+        // @TODO: Just a placeholder. Implement proper input state for winint
+        // and use here.
+        pixel_loop::input::CrosstermInputState::new(),
         context,
         canvas,
-        |e, s, canvas| {
+        |e, s, i, canvas| {
             s.updates_called += 1;
             let sand_color = Color::from_rgb(226, 202, 118);
             // UPDATE BEGIN
@@ -515,7 +518,7 @@ fn main() -> Result<()> {
             s.f_is_pressed = false;
             Ok(())
         },
-        |e, s, canvas, dt| {
+        |e, s, i, canvas, dt| {
             let width = canvas.width();
             let height = canvas.height();
 

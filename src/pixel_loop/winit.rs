@@ -1,4 +1,5 @@
 use crate::canvas::PixelsCanvas;
+use crate::input::InputState;
 
 use super::{EngineEnvironment, PixelLoop, RenderFn, UpdateFn};
 use anyhow::{Context, Result};
@@ -70,16 +71,24 @@ pub fn init_pixels(context: &WinitContext, width: u32, height: u32) -> Result<Pi
     Ok(PixelsCanvas::new(pixels))
 }
 
-pub fn run<State: 'static>(
+pub fn run<State: 'static, InputStateImpl: InputState + 'static>(
     updates_per_second: usize,
     state: State,
+    input_state: InputStateImpl,
     mut context: WinitContext,
     canvas: PixelsCanvas,
-    update: UpdateFn<State, PixelsCanvas>,
-    render: RenderFn<State, PixelsCanvas>,
+    update: UpdateFn<State, InputStateImpl, PixelsCanvas>,
+    render: RenderFn<State, InputStateImpl, PixelsCanvas>,
     handle_event: WinitEventFn<State, PixelsCanvas>,
 ) -> ! {
-    let mut pixel_loop = PixelLoop::new(updates_per_second, state, canvas, update, render);
+    let mut pixel_loop = PixelLoop::new(
+        updates_per_second,
+        state,
+        input_state,
+        canvas,
+        update,
+        render,
+    );
 
     context.event_loop.run(move |event, _, control_flow| {
         handle_event(

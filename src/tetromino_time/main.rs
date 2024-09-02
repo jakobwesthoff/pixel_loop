@@ -3,6 +3,7 @@ use std::time::{Duration, SystemTime};
 
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Local};
+use pixel_loop::input::CrosstermInputState;
 use pixel_loop::{Canvas, Color, EngineEnvironment, RenderableCanvas};
 use tetromino::{AnimStep, Tetromino, BLOCK_SIZE, DIGIT_HEIGHT, DIGIT_WIDTH};
 
@@ -156,9 +157,12 @@ fn main() -> Result<()> {
     pixel_loop::winit::run(
         120,
         state,
+        // @TODO: Just a placeholder. Implement proper input state for winint
+        // and use here.
+        CrosstermInputState::new(),
         context,
         canvas,
-        |ee, s, canvas| {
+        |ee, s, input, canvas| {
             // @TODO: take this somehow from the base block size or move the
             // spacing to the "font" somehow
             let char_width = 7 * 16;
@@ -207,7 +211,7 @@ fn main() -> Result<()> {
 
             Ok(())
         },
-        |ee, s, canvas, dt| {
+        |ee, s, input, canvas, dt| {
             let width = canvas.width();
             let height = canvas.height();
 

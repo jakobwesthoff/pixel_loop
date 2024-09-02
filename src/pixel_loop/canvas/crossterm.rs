@@ -1,7 +1,10 @@
 use crate::{Canvas, Color, RenderableCanvas};
 use anyhow::Result;
+use crossterm::event::{
+    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+};
 use crossterm::style::{self, Print, SetColors};
-use crossterm::{cursor, ExecutableCommand};
+use crossterm::{cursor, execute, ExecutableCommand};
 use std::io::Write;
 use std::time::{Duration, Instant};
 
@@ -26,11 +29,8 @@ impl CrosstermCanvas {
         }
     }
 
-    pub fn with_refresh_limit(self, limit: usize) -> Self {
-        Self {
-            frame_limit_nanos: 1_000_000_000u64 / limit as u64,
-            ..self
-        }
+    pub fn set_refresh_limit(&mut self, limit: usize) {
+        self.frame_limit_nanos = 1_000_000_000u64 / limit as u64;
     }
 }
 
