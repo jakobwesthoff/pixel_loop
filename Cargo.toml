@@ -20,6 +20,10 @@ path = "src/pixel_sand/main.rs"
 name = "trivial_cli_demo"
 path = "src/trivial_cli_demo/main.rs"
 
+[[bin]]
+name = "shell_smash"
+path = "src/shell_smash/main.rs"
+
 [dependencies]
 anyhow = "1.0.82"
 chrono = "0.4.38"
