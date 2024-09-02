@@ -22,7 +22,7 @@ impl CrosstermInputState {
             keys_down: HashMap::new(),
             keys_pressed_this_update: HashSet::new(),
             keys_released_this_update: HashSet::new(),
-            event_cycles_before_released: 4,
+            event_cycles_before_released: 2,
             enhanced_keyboard: false,
         }
     }
@@ -327,7 +327,6 @@ impl KeyboardState for CrosstermInputState {
 
     fn is_key_down(&self, key: KeyboardKey) -> bool {
         self.keys_down.contains_key(&key)
-            && *self.keys_down.get(&key).unwrap() == self.event_cycles_before_released
     }
 
     fn is_key_released(&self, key: KeyboardKey) -> bool {
