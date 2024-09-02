@@ -16,6 +16,7 @@ struct Box {
 }
 
 struct State {
+    my_box: Box,
     boxes: Vec<Box>,
     frame_count: usize,
     start_frame_time: SystemTime,
@@ -24,6 +25,13 @@ struct State {
 impl State {
     fn new(width: u32, height: u32) -> Self {
         Self {
+            my_box: Box {
+                box_position: (0, 0),
+                box_direction: (1, 1),
+                box_size: (5, 5),
+                color: Color::from_rgb(156, 80, 182),
+                shadow_color: Color::from_rgb(104, 71, 141),
+            },
             boxes: vec![
                 Box {
                     box_position: (0, 0),
@@ -92,6 +100,19 @@ fn main() -> Result<()> {
                 }
             }
 
+            if input.is_key_down(KeyboardKey::Up) {
+                s.my_box.box_position.1 -= 1;
+            }
+            if input.is_key_down(KeyboardKey::Down) {
+                s.my_box.box_position.1 += 1;
+            }
+            if input.is_key_down(KeyboardKey::Left) {
+                s.my_box.box_position.0 -= 1;
+            }
+            if input.is_key_down(KeyboardKey::Right) {
+                s.my_box.box_position.0 += 1;
+            }
+
             for b in s.boxes.iter_mut() {
                 let (mut px, mut py) = b.box_position;
                 let (mut dx, mut dy) = b.box_direction;
@@ -138,6 +159,20 @@ fn main() -> Result<()> {
                     &b.color,
                 );
             }
+            canvas.filled_rect(
+                s.my_box.box_position.0 + 1,
+                s.my_box.box_position.1 + 1,
+                s.my_box.box_size.0,
+                s.my_box.box_size.1,
+                &s.my_box.shadow_color,
+            );
+            canvas.filled_rect(
+                s.my_box.box_position.0,
+                s.my_box.box_position.1,
+                s.my_box.box_size.0,
+                s.my_box.box_size.1,
+                &s.my_box.color,
+            );
 
             // RENDER END
 
