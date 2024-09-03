@@ -90,6 +90,10 @@ fn main() -> Result<()> {
             let width = canvas.width();
             let height = canvas.height();
 
+            if input.is_key_pressed(KeyboardKey::Q) {
+                std::process::exit(0);
+            }
+
             if input.is_key_pressed(KeyboardKey::Space) {
                 for b in s.boxes.iter_mut() {
                     b.color = Color::from_rgb(e.rand.gen(), e.rand.gen(), e.rand.gen());

@@ -19,12 +19,17 @@ Currently, there are the following:
 * [pixel_sand](src/pixel_sand/README.md) - A sand movement simulator.
 * [tetromino_time](src/tetromino_time/README.md) - A Tetromino based timer.
 * [trivial_cli_demo](src/trivial_cli_demo/README.md) - A trivial demo showing the CLI/Shell Unicode and ANSI based output driver.
+* [shell_smash](src/shell_smash/README.md) - A simple breakout clone running in your Terminal.
 
 ## Gallery
 
 <img src="src/pixel_sand/thumbnail.png" width="75%" />
 
 <img src="src/tetromino_time/thumbnail.png" width="75%" />
+
+<img src="src/trivial_cli_demo/thumbnail.png" width="75%" />
+
+<img src="src/shell_smash/thumbnail.png" width="75%" />
 
 ## Build Instructions
 
