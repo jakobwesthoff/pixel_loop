@@ -1,10 +1,7 @@
 use crate::{Canvas, Color, RenderableCanvas};
 use anyhow::Result;
-use crossterm::event::{
-    KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
-};
 use crossterm::style::{self, Print, SetColors};
-use crossterm::{cursor, execute, ExecutableCommand};
+use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
 use std::time::{Duration, Instant};
 
