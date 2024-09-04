@@ -24,6 +24,10 @@ path = "src/trivial_cli_demo/main.rs"
 name = "shell_smash"
 path = "src/shell_smash/main.rs"
 
+[[bin]]
+name = "fireworks"
+path = "src/fireworks/main.rs"
+
 [dependencies]
 anyhow = "1.0.82"
 chrono = "0.4.38"
