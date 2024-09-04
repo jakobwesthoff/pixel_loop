@@ -158,10 +158,10 @@ pub fn run<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas>(
 #[repr(C)]
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Color {
-    r: u8,
-    g: u8,
-    b: u8,
-    a: u8,
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
+    pub a: u8,
 }
 
 trait ColorAsByteSlice {
