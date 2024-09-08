@@ -28,11 +28,11 @@ Currently, there are the following:
 
 <img src="src/tetromino_time/thumbnail.png" width="75%" />
 
-<img src="src/fireworks/thumbnail.gif" width="75%" />
-
 <img src="src/trivial_cli_demo/thumbnail.png" width="75%" />
 
 <img src="src/shell_smash/thumbnail.png" width="75%" />
+
+<img src="src/fireworks/thumbnail.gif" width="75%" />
 
 
 ## Build Instructions
