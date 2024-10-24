@@ -28,6 +28,11 @@ path = "src/shell_smash/main.rs"
 name = "fireworks"
 path = "src/fireworks/main.rs"
 
+[[bin]]
+name = "tetromino_cli"
+path = "src/tetromino_cli/main.rs"
+
+
 [dependencies]
 anyhow = "1.0.82"
 chrono = "0.4.38"
