@@ -402,6 +402,15 @@ pub trait Canvas {
         &color_slice[0]
     }
 
+    fn maybe_get(&self, x: i64, y: i64) -> Option<&Color> {
+        if x < 0 || y < 0 || x >= self.width() as i64 || y >= self.height() as i64 {
+            // Out of view
+            None
+        } else {
+            Some(self.get(x as u32, y as u32))
+        }
+    }
+
     fn set(&mut self, x: u32, y: u32, color: &Color) {
         let i = (y * self.width() + x) as usize;
         self.set_range(i..i + 1, std::slice::from_ref(color));
