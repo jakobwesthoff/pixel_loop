@@ -50,12 +50,14 @@ fn main() -> Result<()> {
                 let x = e.rand.gen_range(0..width as i64 - 1);
                 let color =
                     Color::from_rgb(e.rand.gen::<u8>(), e.rand.gen::<u8>(), e.rand.gen::<u8>());
-                let shape = match e.rand.gen_range(0..5) {
+                let shape = match e.rand.gen_range(0..7) {
                     0 => tetromino::Shape::L,
                     1 => tetromino::Shape::Square,
                     2 => tetromino::Shape::Straight,
                     3 => tetromino::Shape::T,
                     4 => tetromino::Shape::Skew,
+                    5 => tetromino::Shape::RightSkew,
+                    6 => tetromino::Shape::J,
                     _ => panic!("Something very strange happend"),
                 };
 

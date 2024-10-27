@@ -3,10 +3,12 @@ use pixel_loop::{Canvas, Color};
 #[derive(Debug)]
 pub enum Shape {
     L,
+    J,
     Square,
     T,
     Straight,
     Skew,
+    RightSkew
 }
 
 #[derive(Debug)]
@@ -74,6 +76,24 @@ fn would_tetromino_collide_with_canvas<C: Canvas>(
             !canvas.is_empty_or_color(*x, *y, &empty)
                 || !canvas.is_empty_or_color(*x + 1, *y, &empty)
         }
+        (J, NoRotation) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x - 1, *y - 1, &empty)
+                || !canvas.is_empty_or_color(*x - 2, *y - 1, &empty)
+        }
+        (J, Degrees90) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+        }
+        (J, Degrees180) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 2, *y, &empty)
+        }
+        (J, Degrees270) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y-2, &empty)
+        }
         (Square, _) => {
             !canvas.is_empty_or_color(*x, *y, &empty)
                 || !canvas.is_empty_or_color(*x + 1, *y, &empty)
@@ -111,6 +131,15 @@ fn would_tetromino_collide_with_canvas<C: Canvas>(
         (Skew, Degrees90) | (Skew, Degrees270) => {
             !canvas.is_empty_or_color(*x, *y, &empty)
                 || !canvas.is_empty_or_color(*x - 1, *y - 1, &empty)
+        }
+        (RightSkew, NoRotation) | (RightSkew, Degrees180) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+                || !canvas.is_empty_or_color(*x - 1, *y - 1, &empty)
+        }
+        (RightSkew, Degrees90) | (RightSkew, Degrees270) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y - 1, &empty)
         }
         _ => panic!(
             "Collision calculation for {:?} shape and rotation {:?} not implemented yet",
@@ -181,6 +210,22 @@ impl Board {
                     canvas.filled_rect(*x, *y - 3, 1, 3, color);
                     canvas.filled_rect(*x + 1, *y - 1, 1, 1, color);
                 }
+                (J, NoRotation) => {
+                    canvas.filled_rect(*x-2, *y - 2, 2, 1, color);
+                    canvas.filled_rect(*x, *y - 2, 1, 2, color);
+                }
+                (J, Degrees90) => {
+                    canvas.filled_rect(*x, *y - 1, 2, 1, color);
+                    canvas.filled_rect(*x + 1, *y - 3, 1, 2, color);
+                }
+                (J, Degrees180) => {
+                    canvas.filled_rect(*x, *y - 2, 1, 2, color);
+                    canvas.filled_rect(*x + 1, *y - 1, 2, 1, color);
+                }
+                (J, Degrees270) => {
+                    canvas.filled_rect(*x, *y - 3, 1, 3, color);
+                    canvas.filled_rect(*x + 1, *y - 3, 1, 1, color);
+                }
                 (Square, _) => {
                     canvas.filled_rect(*x, *y - 2, 2, 2, color);
                 }
@@ -213,6 +258,14 @@ impl Board {
                 (Skew, Degrees90) | (Skew, Degrees270) => {
                     canvas.filled_rect(*x, *y - 2, 1, 2, color);
                     canvas.filled_rect(*x - 1, *y - 3, 1, 2, color);
+                }
+                (RightSkew, NoRotation) | (RightSkew, Degrees180) => {
+                    canvas.filled_rect(*x, *y - 1, 2, 1, color);
+                    canvas.filled_rect(*x - 1, *y - 2, 2, 1, color);
+                }
+                (RightSkew, Degrees90) | (RightSkew, Degrees270) => {
+                    canvas.filled_rect(*x, *y - 2, 1, 2, color);
+                    canvas.filled_rect(*x + 1, *y - 3, 1, 2, color);
                 }
                 _ => panic!(
                     "Render implementation for {:?} shape with rotation {:?} not implemented yet",
