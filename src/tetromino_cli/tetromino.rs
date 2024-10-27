@@ -1,6 +1,5 @@
 use pixel_loop::{Canvas, Color};
 
-
 #[derive(Debug)]
 pub enum Shape {
     L,
@@ -10,8 +9,17 @@ pub enum Shape {
     Skew,
 }
 
+#[derive(Debug)]
+pub enum Rotation {
+    Degrees90,
+    Degrees180,
+    Degrees270,
+    NoRotation,
+}
+
 struct Tetromino {
     shape: Shape,
+    rotation: Rotation,
     x: i64,
     y: i64,
     color: Color,
@@ -19,34 +27,48 @@ struct Tetromino {
 }
 
 fn would_tetromino_collide_with_canvas<C: Canvas>(
-    Tetromino { shape, x, y, .. }: &Tetromino,
+    Tetromino {
+        shape,
+        rotation,
+        x,
+        y,
+        ..
+    }: &Tetromino,
     canvas: &C,
 ) -> bool {
     let empty = Color::from_rgb(0, 0, 0);
-    match shape {
-        Shape::L => {
+    use Rotation::*;
+    use Shape::*;
+    match (shape, rotation) {
+        (L, NoRotation) => {
             canvas.maybe_get(*x, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
         }
-        Shape::Square => {
+        (Square, _) => {
             canvas.maybe_get(*x, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
         }
-        Shape::T => canvas.maybe_get(*x, *y + 1) != Some(&empty),
-        Shape::Straight => {
+        (T, NoRotation) => {
+            canvas.maybe_get(*x, *y + 1) != Some(&empty)
+                || canvas.maybe_get(*x + 1, *y) != Some(&empty)
+                || canvas.maybe_get(*x - 1, *y) != Some(&empty)
+        }
+        (Straight, NoRotation) => {
             canvas.maybe_get(*x, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 2, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 3, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 4, *y + 1) != Some(&empty)
         }
-        Shape::Skew => {
+        (Skew, NoRotation) => {
             canvas.maybe_get(*x, *y + 1) != Some(&empty)
                 || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
+                || canvas.maybe_get(*x + 2, *y) != Some(&empty)
+                || canvas.maybe_get(*x + 3, *y) != Some(&empty)
         }
         _ => panic!(
-            "Collision calculation for {:?} shape not implemented yet",
-            shape
+            "Collision calculation for {:?} shape and rotation {:?} not implemented yet",
+            shape, rotation
         ),
     }
 }
@@ -66,43 +88,58 @@ impl Board {
         }
     }
 
-    pub fn add_tetromino(&mut self, x: i64, y: i64, color: Color, shape: Shape) {
+    pub fn add_tetromino(
+        &mut self,
+        x: i64,
+        y: i64,
+        color: Color,
+        shape: Shape,
+        rotation: Rotation,
+    ) {
         self.tetrominos.push(Tetromino {
             x,
             y,
             color,
             shape,
+            rotation,
             stopped: false,
         })
     }
 
     pub fn render<C: Canvas>(&self, canvas: &mut C) {
         for Tetromino {
-            shape, x, y, color, ..
+            shape,
+            rotation,
+            x,
+            y,
+            color,
+            ..
         } in self.tetrominos.iter()
         {
-            match shape {
-                Shape::L => {
+            use Rotation::*;
+            use Shape::*;
+            match (shape, rotation) {
+                (L, NoRotation) => {
                     canvas.filled_rect(*x, *y - 2, 1, 3, color);
                     canvas.filled_rect(*x + 1, *y, 1, 1, color);
                 }
-                Shape::Square => {
+                (Square, _) => {
                     canvas.filled_rect(*x, *y - 1, 2, 2, color);
                 }
-                Shape::T => {
+                (T, NoRotation) => {
                     canvas.filled_rect(*x - 1, *y - 1, 3, 1, color);
                     canvas.filled_rect(*x, *y, 1, 1, color);
                 }
-                Shape::Straight => {
+                (Straight, NoRotation) => {
                     canvas.filled_rect(*x, *y, 5, 1, color);
                 }
-                Shape::Skew => {
+                (Skew, NoRotation) => {
                     canvas.filled_rect(*x, *y, 2, 1, color);
                     canvas.filled_rect(*x + 1, *y - 1, 2, 1, color);
                 }
                 _ => panic!(
-                    "Render implementation for {:?} shape not implemented yet",
-                    shape
+                    "Render implementation for {:?} shape with rotation {:?} not implemented yet",
+                    shape, rotation
                 ),
             }
         }

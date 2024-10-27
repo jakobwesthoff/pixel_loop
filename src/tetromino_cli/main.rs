@@ -6,8 +6,7 @@ use pixel_loop::canvas::CrosstermCanvas;
 use pixel_loop::input::{CrosstermInputState, KeyboardKey, KeyboardState};
 use pixel_loop::{Canvas, Color, RenderableCanvas};
 use rand::Rng;
-use tetromino::Board;
-
+use tetromino::{Board, Rotation};
 
 struct State {
     board: Board,
@@ -57,11 +56,12 @@ fn main() -> Result<()> {
                     2 => tetromino::Shape::Straight,
                     3 => tetromino::Shape::T,
                     4 => tetromino::Shape::Skew,
-                    _ => panic!("Something very strange happend")
+                    _ => panic!("Something very strange happend"),
                 };
 
                 // @FIXME: Only for testing, remove later
-                s.board.add_tetromino(x, 0, color, shape);
+                s.board
+                    .add_tetromino(x, 0, color, shape, Rotation::NoRotation);
             }
 
             s.board.update(canvas);
