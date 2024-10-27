@@ -411,6 +411,12 @@ pub trait Canvas {
         }
     }
 
+    // @TODO: Not ideal: It would be better if the canvas knew its "empty"
+    // (clear) color and could be asked `is_empty`.
+    fn is_empty_or_color(&self, x: i64, y: i64, color: &Color) -> bool {
+        self.maybe_get(x, y).map(|c| c == color).unwrap_or(true)
+    }
+
     fn set(&mut self, x: u32, y: u32, color: &Color) {
         let i = (y * self.width() + x) as usize;
         self.set_range(i..i + 1, std::slice::from_ref(color));
