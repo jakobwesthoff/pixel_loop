@@ -17,6 +17,22 @@ pub enum Rotation {
     NoRotation,
 }
 
+// Tetromino coordinates always describe the lower left corner of the shape,
+// where it is filled.
+// Exanmple:
+// xxx
+//  x
+//  ^ Lower(!) left corner of this pixel is the coordinate of the tetromino.
+//
+// This is in contrast to the usual coordinate system where the upper left
+// corner is used. Positioning that way, makes the resoning about laying
+// out the tetrominos to form a clock easier in the end.
+//
+// This kind of "messes" up rotation, as there is no fixed "center" to rotate
+// around. However as we are not in the business of implementing a tetris game
+// this is not important to us. Rotationonal symetry is not a requirement for
+// the clock.  The shapes are based upon this reference:
+// https://tetris.wiki/images/b/b5/Tgm_basic_ars_description.png
 struct Tetromino {
     shape: Shape,
     rotation: Rotation,
@@ -41,30 +57,60 @@ fn would_tetromino_collide_with_canvas<C: Canvas>(
     use Shape::*;
     match (shape, rotation) {
         (L, NoRotation) => {
-            canvas.maybe_get(*x, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y - 1, &empty)
+                || !canvas.is_empty_or_color(*x + 2, *y - 1, &empty)
+        }
+        (L, Degrees90) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x - 1, *y - 2, &empty)
+        }
+        (L, Degrees180) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 2, *y, &empty)
+        }
+        (L, Degrees270) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
         }
         (Square, _) => {
-            canvas.maybe_get(*x, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
         }
         (T, NoRotation) => {
-            canvas.maybe_get(*x, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 1, *y) != Some(&empty)
-                || canvas.maybe_get(*x - 1, *y) != Some(&empty)
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y - 1, &empty)
+                || !canvas.is_empty_or_color(*x - 1, *y - 1, &empty)
         }
-        (Straight, NoRotation) => {
-            canvas.maybe_get(*x, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 2, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 3, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 4, *y + 1) != Some(&empty)
+        (T, Degrees90) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x - 1, *y - 1, &empty)
         }
-        (Skew, NoRotation) => {
-            canvas.maybe_get(*x, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 1, *y + 1) != Some(&empty)
-                || canvas.maybe_get(*x + 2, *y) != Some(&empty)
-                || canvas.maybe_get(*x + 3, *y) != Some(&empty)
+        (T, Degrees180) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 2, *y, &empty)
+        }
+        (T, Degrees270) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y - 1, &empty)
+        }
+        (Straight, NoRotation) | (Straight, Degrees180) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 2, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 3, *y, &empty)
+        }
+        (Straight, Degrees90) | (Straight, Degrees270) => !canvas.is_empty_or_color(*x, *y, &empty),
+        (Skew, NoRotation) | (Skew, Degrees180) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 1, *y, &empty)
+                || !canvas.is_empty_or_color(*x + 2, *y - 1, &empty)
+        }
+        (Skew, Degrees90) | (Skew, Degrees270) => {
+            !canvas.is_empty_or_color(*x, *y, &empty)
+                || !canvas.is_empty_or_color(*x - 1, *y - 1, &empty)
         }
         _ => panic!(
             "Collision calculation for {:?} shape and rotation {:?} not implemented yet",
@@ -120,22 +166,53 @@ impl Board {
             use Shape::*;
             match (shape, rotation) {
                 (L, NoRotation) => {
-                    canvas.filled_rect(*x, *y - 2, 1, 3, color);
-                    canvas.filled_rect(*x + 1, *y, 1, 1, color);
+                    canvas.filled_rect(*x, *y - 2, 1, 2, color);
+                    canvas.filled_rect(*x + 1, *y - 2, 2, 1, color);
+                }
+                (L, Degrees90) => {
+                    canvas.filled_rect(*x, *y - 3, 1, 3, color);
+                    canvas.filled_rect(*x - 1, *y - 3, 1, 1, color);
+                }
+                (L, Degrees180) => {
+                    canvas.filled_rect(*x, *y - 1, 3, 1, color);
+                    canvas.filled_rect(*x + 2, *y - 2, 1, 1, color);
+                }
+                (L, Degrees270) => {
+                    canvas.filled_rect(*x, *y - 3, 1, 3, color);
+                    canvas.filled_rect(*x + 1, *y - 1, 1, 1, color);
                 }
                 (Square, _) => {
-                    canvas.filled_rect(*x, *y - 1, 2, 2, color);
+                    canvas.filled_rect(*x, *y - 2, 2, 2, color);
                 }
                 (T, NoRotation) => {
-                    canvas.filled_rect(*x - 1, *y - 1, 3, 1, color);
-                    canvas.filled_rect(*x, *y, 1, 1, color);
+                    canvas.filled_rect(*x - 1, *y - 2, 3, 1, color);
+                    canvas.filled_rect(*x, *y - 1, 1, 1, color);
                 }
-                (Straight, NoRotation) => {
-                    canvas.filled_rect(*x, *y, 5, 1, color);
+                (T, Degrees90) => {
+                    canvas.filled_rect(*x, *y - 3, 1, 3, color);
+                    canvas.filled_rect(*x - 1, *y - 2, 1, 1, color);
                 }
-                (Skew, NoRotation) => {
-                    canvas.filled_rect(*x, *y, 2, 1, color);
-                    canvas.filled_rect(*x + 1, *y - 1, 2, 1, color);
+                (T, Degrees180) => {
+                    canvas.filled_rect(*x, *y - 1, 3, 1, color);
+                    canvas.filled_rect(*x + 1, *y - 2, 1, 1, color);
+                }
+                (T, Degrees270) => {
+                    canvas.filled_rect(*x, *y - 3, 1, 3, color);
+                    canvas.filled_rect(*x + 1, *y - 2, 1, 1, color);
+                }
+                (Straight, NoRotation) | (Straight, Degrees180) => {
+                    canvas.filled_rect(*x, *y - 1, 4, 1, color);
+                }
+                (Straight, Degrees90) | (Straight, Degrees270) => {
+                    canvas.filled_rect(*x, *y - 4, 1, 4, color);
+                }
+                (Skew, NoRotation) | (Skew, Degrees180) => {
+                    canvas.filled_rect(*x, *y - 1, 2, 1, color);
+                    canvas.filled_rect(*x + 1, *y - 2, 2, 1, color);
+                }
+                (Skew, Degrees90) | (Skew, Degrees270) => {
+                    canvas.filled_rect(*x, *y - 2, 1, 2, color);
+                    canvas.filled_rect(*x - 1, *y - 3, 1, 2, color);
                 }
                 _ => panic!(
                     "Render implementation for {:?} shape with rotation {:?} not implemented yet",
