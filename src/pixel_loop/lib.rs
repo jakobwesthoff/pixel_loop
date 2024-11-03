@@ -7,6 +7,12 @@ pub mod input;
 #[cfg(feature = "winit")]
 pub mod winit;
 
+// Re-exporting deps for convenience in code using pixel_loop
+#[cfg(feature = "crossterm")]
+pub use crossterm;
+pub use rand;
+pub use rand_xoshiro;
+
 use anyhow::{Context, Result};
 use canvas::RenderableCanvas;
 use input::InputState;
