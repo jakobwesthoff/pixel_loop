@@ -1,8 +1,11 @@
 use std::ops::Range;
 
-use crate::{Canvas, Color};
 use anyhow::anyhow;
 use anyhow::Result;
+
+use crate::Color;
+
+use super::Canvas;
 
 pub struct InMemoryCanvas {
     buffer: Vec<Color>,

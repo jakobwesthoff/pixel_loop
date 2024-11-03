@@ -1,7 +1,9 @@
-use crate::{Canvas, Color, ColorAsByteSlice, RenderableCanvas};
+use crate::color::{Color, ColorAsByteSlice};
 use anyhow::{Context, Result};
 use pixels::Pixels;
 use std::ops::Range;
+
+use super::{Canvas, RenderableCanvas};
 
 pub struct PixelsCanvas {
     pixels: Pixels,

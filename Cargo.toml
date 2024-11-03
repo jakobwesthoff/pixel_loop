@@ -9,16 +9,30 @@ name = "pixel_loop"
 path = "src/pixel_loop/lib.rs"
 
 [dependencies]
-anyhow = "1.0.82"
-crossterm = "0.28.1"
-pixels = "0.13.0"
+anyhow = "1.0.92"
+crossterm = { version = "0.28.1", optional = true }
+pixels = { version = "0.13.0", optional = true }
 rand = "0.8.5"
 rand_xoshiro = "0.6.0"
-stb_image = "0.3.0"
-winit = "0.28.0"
-winit_input_helper = "0.14.0"
+stb_image = { version = "0.3.0", optional = true }
+winit = { version = "0.28.0", optional = true }
+winit_input_helper = { version = "0.14.0", optional = true }
 
 [profile.dev]
 opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
+
+[features]
+# For now everything is enabled by default. We might change this in future
+# versions, once the API becomes more stable.
+default = ["crossterm", "winit", "image-load"]
+
+# Enable console rendering capabilities via the "CrosstermCanvas"
+crossterm = ["dep:crossterm"]
+
+# Enable Window handling and rendering capabilities, via winit and pixels
+winit = ["dep:winit", "dep:winit_input_helper", "dep:pixels"]
+
+# Allow loading of images via stb-image and InMemoryCanvas
+image-load = ["dep:stb_image"]
