@@ -9,7 +9,6 @@ pub mod winit;
 
 use anyhow::{Context, Result};
 use canvas::RenderableCanvas;
-use color::*;
 use input::InputState;
 use rand::SeedableRng;
 use rand_xoshiro::Xoshiro256PlusPlus;

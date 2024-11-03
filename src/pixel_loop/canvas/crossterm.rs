@@ -1,4 +1,4 @@
-use crate::Color;
+use crate::color::Color;
 use anyhow::Result;
 use crossterm::style::{self, Print, SetColors};
 use crossterm::{cursor, ExecutableCommand};
