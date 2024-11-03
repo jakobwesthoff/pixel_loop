@@ -13,7 +13,7 @@ pub mod pixels;
 #[cfg(feature = "winit")]
 pub use pixels::PixelsCanvas;
 
-use crate::Color;
+use crate::color::Color;
 
 use anyhow::Result;
 use std::ops::Range;

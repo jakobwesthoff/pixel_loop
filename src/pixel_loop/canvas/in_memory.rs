@@ -3,7 +3,7 @@ use std::ops::Range;
 use anyhow::anyhow;
 use anyhow::Result;
 
-use crate::Color;
+use crate::color::Color;
 
 use super::Canvas;
 
