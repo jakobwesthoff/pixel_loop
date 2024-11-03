@@ -13,6 +13,7 @@ pub use crossterm;
 pub use rand;
 pub use rand_xoshiro;
 
+// @TODO: Maybe anyhow is not the right thing to be used within a library?
 use anyhow::{Context, Result};
 use canvas::RenderableCanvas;
 use input::InputState;
