@@ -1,10 +1,11 @@
 # 🎨 Pixel Loop 🔁
 
-**WORK IN PROGRESS**
+## **WORK IN PROGRESS**
+This crate/library is still heavily being worked on. The API is not considered to be stable at this point in time. If you want to follow the development check out the following youtube channel [MrJakob](https://youtube.com/c/mrjakob).
 
 ## Overview
 
-Pixel Loop is a Rust implementation inspired by the concepts discussed in the [article on fixed time game/update loops by Gaffer on Games](https://gafferongames.com/post/fix_your_timestep/). The current implementation leverages [tao](https://crates.io/crates/tao) and [pixels](https://crates.io/crates/pixels) for window initialization and drawing capabilities. The intention is to further generalize this implementation in the future.
+Pixel Loop is a Rust implementation inspired by the concepts discussed in the [article on fixed time game/update loops by Gaffer on Games](https://gafferongames.com/post/fix_your_timestep/). The current implementation leverages [winit](https://crates.io/crates/winit) and [pixels](https://crates.io/crates/pixels) for window initialization and drawing capabilities, or [crossterm](https://crates.io/crates/crossterm) to drawn to the terminal using unicode. The intention is to further generalize this implementation in the future.
 
 ## Motivation
 
@@ -12,9 +13,11 @@ The idea behind Pixel Loop resonated with me as I have often faced challenges wi
 
 ## Subprojects
 
-Currently, this repository houses different experiments implemented based on `pixel_loop` while it is still under development. They are within their appropriate subfolder in the `src` folder. Each of them has its separate README in the corresponding directory.
+This repository housed a couple of different experiments implemented based on `pixel_loop`. Those have now been moved to their own repositories/locations, as the library is published on crates.io.
 
-Currently, there are the following:
+You can find the old subprojects here:
+
+**TODO: MOVE AND LINK**
 
 * [pixel_sand](src/pixel_sand/README.md) - A sand movement simulator.
 * [tetromino_time](src/tetromino_time/README.md) - A Tetromino based timer.
@@ -23,6 +26,8 @@ Currently, there are the following:
 * [fireworks](src/fireworks/README.md) - Fireworks particle simulation in your Terminal
 
 ## Gallery
+
+**TODO: WHERE TO PUT THAT?**
 
 <img src="src/pixel_sand/thumbnail.png" width="75%" />
 
@@ -37,20 +42,8 @@ Currently, there are the following:
 
 ## Build Instructions
 
-To build Pixel Loop and all its subproject binaries using Cargo, execute the following command:
+To build Pixel Loop using Cargo, execute the following command:
 
 ```shell
 cargo build --release
 ```
-
-## Running the Applications
-
-Once built, all the application binaries are available under `target/release/`. To run, for example, the `pixel_sand` application, execute:
-
-```
-target/release/pixel_sand
-```
-
-## Using the Library
-
-To use the library, simply check it out and depend on it. Please note that it is currently not available on crates.io until it reaches a more mature state.
