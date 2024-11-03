@@ -1,9 +1,11 @@
-use crate::{Canvas, Color, RenderableCanvas};
+use crate::Color;
 use anyhow::Result;
 use crossterm::style::{self, Print, SetColors};
 use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
 use std::time::{Duration, Instant};
+
+use super::{Canvas, RenderableCanvas};
 
 pub struct CrosstermCanvas {
     width: u16,

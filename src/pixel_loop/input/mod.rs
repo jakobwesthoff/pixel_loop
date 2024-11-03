@@ -1,5 +1,6 @@
+#[cfg(feature = "crossterm")]
 pub mod crossterm;
-
+#[cfg(feature = "crossterm")]
 pub use crossterm::CrosstermInputState;
 
 use anyhow::Result;
