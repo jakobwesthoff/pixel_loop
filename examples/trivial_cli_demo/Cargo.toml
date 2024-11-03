@@ -1,0 +1,10 @@
+[package]
+name = "trivial_cli_demo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+pixel_loop = { version = "*", path = "../../", default-features = false, features = [
+  "crossterm",
+] }
+anyhow = "1.0.92"
