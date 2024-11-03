@@ -1,15 +1,48 @@
+//! Window-based canvas implementation using the pixels crate.
+//!
+//! This module provides a canvas implementation that renders directly to a window
+//! using the pixels crate for hardware-accelerated rendering. It requires the
+//! "winit" feature to be enabled.
+
+use super::{Canvas, RenderableCanvas};
 use crate::color::{Color, ColorAsByteSlice};
 use anyhow::{Context, Result};
 use pixels::Pixels;
 use std::ops::Range;
 
-use super::{Canvas, RenderableCanvas};
-
+/// A canvas implementation that renders to a window using the pixels crate.
+///
+/// This canvas provides hardware-accelerated rendering to a window surface
+/// using the pixels crate. It handles pixel data conversion between the
+/// internal Color type and the RGBA byte format required by pixels.
+///
+/// # Example
+///
+/// The creation of the canvas should always be done using the corresponding factory functions to embed it into a proper window initialization.
+/// In this case it is done using the winit wrapper of the pixel_loop library:
+///
+/// ```
+/// use pixel_loop::winit
+///
+/// let context = winit::init_window("pixel loop", 640, 480, false)?;
+/// let canvas = winit::init_pixels(&context, 640, 480)?
+/// ```
 pub struct PixelsCanvas {
+    /// The underlying pixels instance for window rendering
     pixels: Pixels,
 }
 
 impl PixelsCanvas {
+    /// Creates a new window-based canvas from a pixels instance.
+    ///
+    /// # Arguments
+    /// * `pixels` - A configured pixels instance for rendering
+    ///
+    /// # Notes
+    /// This method should not be called directly, but instead use the
+    /// `init_pixels` factory function provided by the winit module.
+    /// This is to ensure proper initialization of the window and event loop.
+    /// See the example in [PixelsCanvas](crate::canvas::pixels::PixelsCanvas) for more details.
     pub fn new(pixels: Pixels) -> Self {
         Self { pixels }
     }
@@ -19,6 +52,7 @@ impl Canvas for PixelsCanvas {
     fn width(&self) -> u32 {
         self.pixels.texture().width()
     }
+
     fn height(&self) -> u32 {
         self.pixels.texture().height()
     }

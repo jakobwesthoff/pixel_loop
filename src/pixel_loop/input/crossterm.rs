@@ -1,5 +1,8 @@
-use std::collections::{HashMap, HashSet};
-use std::time::Duration;
+//! Crossterm-based input handling implementation.
+//!
+//! This module provides a terminal input implementation using the crossterm crate.
+//! It supports both basic and enhanced keyboard input modes depending on terminal
+//! capabilities.
 
 use super::{InputState, KeyboardKey, KeyboardState};
 use anyhow::Result;
@@ -7,7 +10,14 @@ use crossterm::event::{
     Event, KeyboardEnhancementFlags, PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 use crossterm::execute;
+use std::collections::{HashMap, HashSet};
+use std::time::Duration;
 
+/// Input state handler for terminal input using crossterm.
+///
+/// This implementation supports both basic and enhanced keyboard modes:
+/// - Enhanced mode provides accurate key press/release events if supported by the terminal
+/// - Basic mode falls back to simulated key releases based on timing
 pub struct CrosstermInputState {
     keys_down: HashMap<KeyboardKey, usize>,
     keys_pressed_this_update: HashSet<KeyboardKey>,
@@ -17,6 +27,14 @@ pub struct CrosstermInputState {
 }
 
 impl CrosstermInputState {
+    /// Creates a new CrosstermInputState with default settings.
+    ///
+    /// # Example
+    /// ```
+    /// use pixel_loop::input::CrosstermInputState;
+    ///
+    /// let input_state = CrosstermInputState::new();
+    /// ```
     pub fn new() -> Self {
         Self {
             keys_down: HashMap::new(),
@@ -27,6 +45,25 @@ impl CrosstermInputState {
         }
     }
 
+    /// Sets the number of update cycles before a key is considered released
+    /// in basic (non-enhanced) keyboard mode.
+    ///
+    /// This setting only affects terminals that don't support enhanced keyboard input.
+    /// In basic mode, key releases are simulated after the specified number of
+    /// update cycles since the last key press.
+    ///
+    /// # Arguments
+    /// * `cycles` - Number of update cycles before a key is considered released
+    ///
+    /// The default value is 2 cycles.
+    ///
+    /// # Example
+    /// ```
+    /// use pixel_loop::input::CrosstermInputState;
+    ///
+    /// let input_state = CrosstermInputState::new()
+    ///     .with_event_cycles_before_released(3);
+    /// ```
     pub fn with_event_cycles_before_released(self, cycles: usize) -> Self {
         Self {
             event_cycles_before_released: cycles,
