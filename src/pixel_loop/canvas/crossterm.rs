@@ -1,3 +1,11 @@
+//! Terminal-based canvas implementation using the crossterm crate.
+//!
+//! This module provides a canvas implementation that renders to the terminal
+//! using crossterm for colored output. It requires the "crossterm" feature
+//! to be enabled. The implementation uses Unicode half blocks for rendering
+//! and supports frame rate limiting.
+
+use super::{Canvas, RenderableCanvas};
 use crate::color::Color;
 use anyhow::Result;
 use crossterm::style::{self, Print, SetColors};
@@ -5,18 +13,57 @@ use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
 use std::time::{Duration, Instant};
 
-use super::{Canvas, RenderableCanvas};
-
+/// A canvas implementation that renders to the terminal using crossterm.
+///
+/// This canvas provides terminal-based rendering using Unicode half blocks
+/// and ANSI colors. It supports frame rate limiting and efficient updates
+/// by only redrawing changed parts of the screen.
+///
+/// # Example
+/// ```
+/// use pixel_loop::canvas::CrosstermCanvas;
+/// use pixel_loop::color::*;
+/// use pixel_loop::canvas::Canvas;
+/// use pixel_loop::canvas::RenderableCanvas;
+/// use std::ops::Range;
+/// use anyhow::Result;
+///
+/// fn main() -> Result<()> {
+///   let mut canvas = CrosstermCanvas::new(80, 24);
+///   canvas.filled_rect(5, 5, 10, 10, &Color::from_rgb(255, 0, 0));
+///   // Should of course be called within the [pixel_loop::run] function.
+///   canvas.render()?;
+///  Ok(())
+/// }
+/// ```
 pub struct CrosstermCanvas {
+    /// Width of the canvas in pixels (characters)
     width: u16,
+    /// Height of the canvas in pixels (half characters)
     height: u16,
+    /// Current frame buffer
     buffer: Vec<Color>,
+    /// Previous frame buffer for change detection
     previous_buffer: Vec<Color>,
+    /// Minimal frame time in nanoseconds
     frame_limit_nanos: u64,
+    /// Timestamp of the last rendered frame
     last_frame_time: Instant,
 }
 
 impl CrosstermCanvas {
+    /// Creates a new terminal canvas with the specified dimensions.
+    ///
+    /// # Arguments
+    /// * `width` - Width of the canvas in pixels (characters)
+    /// * `height` - Height of the canvas in pixels (half characters)
+    ///
+    /// # Example
+    /// ```
+    /// use pixel_loop::canvas::CrosstermCanvas;
+    ///
+    /// let canvas = CrosstermCanvas::new(80, 24);
+    /// ```
     pub fn new(width: u16, height: u16) -> Self {
         Self {
             width,
@@ -28,6 +75,20 @@ impl CrosstermCanvas {
         }
     }
 
+    /// Sets the frame rate limit.
+    ///
+    /// # Arguments
+    /// * `limit` - Target frames per second
+    ///
+    /// By default, the canvas is limited to 60 frames per second.
+    ///
+    /// # Example
+    /// ```
+    /// use pixel_loop::canvas::CrosstermCanvas;
+    ///
+    /// let mut canvas = CrosstermCanvas::new(80, 24);
+    /// canvas.set_refresh_limit(30); // Limit to 30 FPS
+    /// ```
     pub fn set_refresh_limit(&mut self, limit: usize) {
         self.frame_limit_nanos = 1_000_000_000u64 / limit as u64;
     }
@@ -51,11 +112,20 @@ impl Canvas for CrosstermCanvas {
     }
 }
 
+/// Unicode character representing the upper half block used for drawing half
+/// character height (quadratic) pixels.
 const UNICODE_UPPER_HALF_BLOCK: &'static str = "▀";
 
+/// Represents a region of the screen that needs to be updated.
+///
+/// A patch contains the position and color data for a sequence of
+/// changed characters that can be efficiently written to the terminal.
 struct Patch {
+    /// Terminal position (x, y)
     position: (u16, u16),
+    /// Raw ANSI data to be written
     data: Vec<u8>,
+    /// Previous colors for change detection
     previous_colors: Option<(Color, Color)>,
 }
 
@@ -211,14 +281,14 @@ impl RenderableCanvas for CrosstermCanvas {
     }
 
     fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
-        todo!()
+        todo!("Not supported (yet)")
     }
 
     fn resize_surface(&mut self, width: u32, height: u32) {
-        todo!()
+        todo!("Not supported (yet)")
     }
 
     fn resize(&mut self, width: u32, height: u32) {
-        todo!()
+        todo!("Not supported (yet)")
     }
 }

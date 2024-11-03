@@ -1,19 +1,42 @@
-use std::ops::Range;
-
-use anyhow::anyhow;
-use anyhow::Result;
-
-use crate::color::Color;
+//! In-memory canvas implementation with image loading capabilities.
+//!
+//! This module provides a basic canvas implementation that stores pixel data in memory
+//! and supports loading images from raw bytes. It requires the "image-load" feature
+//! to be enabled.
 
 use super::Canvas;
+use crate::color::Color;
+use anyhow::anyhow;
+use anyhow::Result;
+use std::ops::Range;
 
+/// A canvas implementation that stores pixel data in memory.
+///
+/// This canvas provides basic pixel manipulation operations and can be used
+/// to load and manipulate images in memory.
 pub struct InMemoryCanvas {
+    /// The pixel buffer storing all colors
     buffer: Vec<Color>,
+    /// Width of the canvas in pixels
     width: u32,
+    /// Height of the canvas in pixels
     height: u32,
 }
 
 impl InMemoryCanvas {
+    /// Creates a new blank canvas with the specified dimensions and background color.
+    ///
+    /// # Arguments
+    /// * `width` - The width of the canvas in pixels
+    /// * `height` - The height of the canvas in pixels
+    /// * `color` - The initial color to fill the canvas with
+    ///
+    /// # Examples
+    /// ```
+    /// use pixel_loop::{canvas::InMemoryCanvas, color::Color};
+    ///
+    /// let canvas = InMemoryCanvas::new(640, 480, &Color::from_rgb(0, 0, 0));
+    /// ```
     pub fn new(width: u32, height: u32, color: &Color) -> Self {
         Self {
             buffer: vec![color.clone(); (width * height) as usize],
@@ -22,6 +45,32 @@ impl InMemoryCanvas {
         }
     }
 
+    /// Creates a new canvas by loading an image from a memory buffer.
+    ///
+    /// This method supports all image formats (non HDR), that can be read by the
+    /// [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h)
+    /// library.
+    ///
+    /// # Arguments
+    /// * `bytes` - Raw image bytes to load
+    ///
+    /// # Returns
+    /// * `Ok(InMemoryCanvas)` - Successfully loaded canvas
+    /// * `Err` - If the image couldn't be loaded or has an unsupported format
+    ///
+    /// # Errors
+    /// Returns an error if:
+    /// * The image data is invalid or corrupted
+    /// * The image is HDR (32-bit float)
+    /// * The image depth is not 3 (RGB)
+    ///
+    /// # Examples
+    /// ```
+    /// use pixel_loop::canvas::InMemoryCanvas;
+    ///
+    /// let image_bytes = std::fs::read("example.jpg").unwrap();
+    /// let canvas = InMemoryCanvas::from_in_memory_image(&image_bytes)?;
+    /// ```
     pub fn from_in_memory_image(bytes: &[u8]) -> Result<Self> {
         use stb_image::image;
         use stb_image::image::LoadResult::*;
