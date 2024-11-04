@@ -9,6 +9,9 @@ pub mod crossterm;
 #[cfg(feature = "crossterm")]
 pub use crossterm::CrosstermInputState;
 
+pub mod noop;
+pub use noop::NoopInputState;
+
 use anyhow::Result;
 
 /// Represents all possible keyboard keys that can be handled.
