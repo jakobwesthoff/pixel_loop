@@ -72,6 +72,10 @@
 //! );
 //! ```
 
+// Re-export winit and pixels for convenience
+pub use pixels;
+pub use winit;
+
 use super::{EngineEnvironment, PixelLoop, RenderFn, UpdateFn};
 use crate::canvas::PixelsCanvas;
 use crate::input::InputState;
