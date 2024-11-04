@@ -1,0 +1,10 @@
+[package]
+name = "trivial_winit_demo"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "*"
+pixel_loop = { version = "*", path = "../../", default-features = false, features = [
+  "winit",
+] }
