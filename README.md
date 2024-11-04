@@ -139,15 +139,13 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Subprojects
 
 This repository housed a couple of different experiment implementations based on
-`pixel_loop`. Those have now been moved to their own repositories/locations, as
-the library is published on crates.io.
+`pixel_loop`. Those have mostly have been moved to their own repositories as
+the library is now published on crates.io.
 
 You can find the old subprojects here:
 
-**TODO: MOVE AND LINK**
-
-* [pixel_sand](src/pixel_sand/README.md) - A sand movement simulator.
-* [tetromino_time](src/tetromino_time/README.md) - A Tetromino based timer.
-* [trivial_cli_demo](src/trivial_cli_demo/README.md) - A trivial demo showing the CLI/Shell Unicode and ANSI based output driver.
-* [shell_smash](src/shell_smash/README.md) - A simple breakout clone running in your Terminal.
-* [fireworks](src/fireworks/README.md) - Fireworks particle simulation in your Terminal
+* [pixel_sand](https://github.com/jakobwesthoff/pixel_sand) - A sand movement simulator.
+* [tetrotime](https://github.com/jakobwesthoff/tetrotime) - A Tetromino based clock, stopwatch and timer.
+* [trivial_cli_demo](examples/trivial_cli_demo/README.md) - A trivial demo showing the CLI/Shell Unicode and ANSI based output driver.
+* [shell_smash](https://github.com/jakobwesthofF/shell_smash) - A simple breakout clone running in your Terminal.
+* [fireworks](https://github.com/jakobwesthoff/pixel_fireworks) - Fireworks particle simulation in your Terminal
