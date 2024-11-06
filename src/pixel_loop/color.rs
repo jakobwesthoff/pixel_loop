@@ -95,7 +95,7 @@ impl Color {
     ///
     /// let color = Color::from_rgba(255, 0, 0, 255); // Opaque red
     /// ```
-    pub const fn from_rgba(r: u8, b: u8, g: u8, a: u8) -> Self {
+    pub const fn from_rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
         Self { r, g, b, a }
     }
 
@@ -112,7 +112,7 @@ impl Color {
     ///
     /// let color = Color::from_rgb(255, 0, 0); // Opaque red
     /// ```
-    pub const fn from_rgb(r: u8, b: u8, g: u8) -> Self {
+    pub const fn from_rgb(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b, a: 255 }
     }
 
