@@ -30,7 +30,7 @@ opt-level = 3
 [features]
 # For now everything is enabled by default. We might change this in future
 # versions, once the API becomes more stable.
-default = ["crossterm", "winit", "image-load"]
+default = ["crossterm", "winit", "stb-image"]
 
 # Enable console rendering capabilities via the "CrosstermCanvas"
 crossterm = ["dep:crossterm"]
@@ -39,4 +39,4 @@ crossterm = ["dep:crossterm"]
 winit = ["dep:winit", "dep:winit_input_helper", "dep:pixels"]
 
 # Allow loading of images via stb-image and InMemoryCanvas
-image-load = ["dep:stb_image"]
+stb-image = ["dep:stb_image"]

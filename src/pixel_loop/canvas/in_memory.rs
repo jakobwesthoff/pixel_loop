@@ -1,8 +1,9 @@
 //! In-memory canvas implementation with image loading capabilities.
 //!
-//! This module provides a basic canvas implementation that stores pixel data in memory
-//! and supports loading images from raw bytes. It requires the "image-load" feature
-//! to be enabled.
+//! This module provides a basic canvas implementation that stores pixel data in memory.
+//!
+//! It can be used to load image data from disk if the `stb-image` feature is
+//! enabled.
 
 use super::Canvas;
 use crate::color::Color;
@@ -51,7 +52,7 @@ impl InMemoryCanvas {
     /// [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h)
     /// library.
     ///
-    /// Only available if the `image-load` feature is enabled.
+    /// Only available if the `stb-image` feature is enabled.
     ///
     /// # Arguments
     /// * `bytes` - Raw image bytes to load
@@ -73,7 +74,7 @@ impl InMemoryCanvas {
     /// let image_bytes = std::fs::read("example.jpg").unwrap();
     /// let canvas = InMemoryCanvas::from_in_memory_image(&image_bytes)?;
     /// ```
-    #[cfg(feature = "image-load")]
+    #[cfg(feature = "stb-image")]
     pub fn from_in_memory_image(bytes: &[u8]) -> Result<Self> {
         use stb_image::image;
         use stb_image::image::LoadResult::*;

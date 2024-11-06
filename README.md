@@ -28,7 +28,7 @@ pixel_loop = "*"
 
 - `winit` - Enable window-based rendering
 - `crossterm` - Enable terminal-based rendering
-- `image-load` - Enable image loading support for canvases
+- `stb-image` - Enable image loading support for InMemoryCanvas via stb_image
 
 By default all flags are currently enabled. If you only need a specific one, you may only use enable the backend/feature you specifically need, to cut down on compilation time and filesize.
 
