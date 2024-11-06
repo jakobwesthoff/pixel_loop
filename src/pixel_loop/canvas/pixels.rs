@@ -31,32 +31,24 @@ struct WinitContext {
 ///
 /// # Example
 ///
-/// The creation of the canvas should always be done using the corresponding factory functions to embed it into a proper window initialization.
-/// In this case it is done using the winit wrapper of the pixel_loop library:
-///
 /// ```
-/// use pixel_loop::winit
-///
-/// let context = winit::init_window("pixel loop", 640, 480, false)?;
-/// let canvas = winit::init_pixels(&context, 640, 480)?
+/// let canvas = PixelsCanvas::new(640, 480, "pixel loop", false)?;
 /// ```
 pub struct PixelsCanvas {
     /// The underlying pixels instance for window rendering
     pixels: Pixels,
+    /// The winit window context
     context: Option<WinitContext>,
 }
 
 impl PixelsCanvas {
-    /// Creates a new window-based canvas from a pixels instance.
+    /// Creates a new window-based canvas using the pixels crate as a backend.
     ///
     /// # Arguments
-    /// * `pixels` - A configured pixels instance for rendering
-    ///
-    /// # Notes
-    /// This method should not be called directly, but instead use the
-    /// `init_pixels` factory function provided by the winit module.
-    /// This is to ensure proper initialization of the window and event loop.
-    /// See the example in [PixelsCanvas](crate::canvas::pixels::PixelsCanvas) for more details.
+    /// * `width` - The width of the canvas in pixels
+    /// * `height` - The height of the canvas in pixels
+    /// * `title` - The title of the window
+    /// * `resizable` - Whether the window should be resizable
     pub fn new(width: u32, height: u32, title: &str, resizable: bool) -> Result<Self> {
         let event_loop = EventLoop::new();
         let input_helper = WinitInputHelper::new();
@@ -149,13 +141,20 @@ impl RenderableCanvas for PixelsCanvas {
             .expect("to be able to resize buffer");
     }
 
+    /// Run the pixel loop, handling events and rendering.
+    ///
+    /// This implementation overrides the generic pixel_loop implementation, to
+    /// handle the winit event_loop properly.
     fn run<State: 'static, InputImpl: InputState + 'static>(
         mut pixel_loop: crate::PixelLoop<State, InputImpl, Self>,
     ) -> !
     where
         Self: Sized,
     {
+        // We may take the context here, as we are never returning from this
+        // function again.
         let context = pixel_loop.canvas.take_context();
+
         context
             .event_loop
             .run(move |event, _, control_flow| match event {
