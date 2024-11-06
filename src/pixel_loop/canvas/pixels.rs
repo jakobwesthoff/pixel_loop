@@ -2,7 +2,7 @@
 //!
 //! This module provides a canvas implementation that renders directly to a window
 //! using the pixels crate for hardware-accelerated rendering. It requires the
-//! "winit" feature to be enabled.
+//! "pixels" feature to be enabled.
 
 use super::{Canvas, RenderableCanvas};
 use crate::color::{Color, ColorAsByteSlice};
@@ -18,21 +18,9 @@ use winit_input_helper::WinitInputHelper;
 
 /// Context winit window-related resources.
 struct WinitContext {
-    pub(crate) event_loop: EventLoop<()>,
+    event_loop: EventLoop<()>,
     input_helper: WinitInputHelper,
     window: Window,
-}
-
-impl WinitContext {
-    /// Returns a reference to the window.
-    pub fn window_ref(&self) -> &Window {
-        &self.window
-    }
-
-    /// Returns a reference to the input helper.
-    pub fn input_helper_ref(&self) -> &WinitInputHelper {
-        &self.input_helper
-    }
 }
 
 /// A canvas implementation that renders to a window using the pixels crate.
@@ -88,11 +76,11 @@ impl PixelsCanvas {
             window,
         };
 
-        let physical_dimensions = context.window_ref().inner_size();
+        let physical_dimensions = context.window.inner_size();
         let surface_texture = SurfaceTexture::new(
             physical_dimensions.width,
             physical_dimensions.height,
-            context.window_ref(),
+            &context.window,
         );
         let pixels =
             Pixels::new(width, height, surface_texture).context("create pixels surface")?;

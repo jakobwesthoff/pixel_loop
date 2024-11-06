@@ -9,6 +9,8 @@ use super::Canvas;
 use crate::color::Color;
 use std::ops::Range;
 
+use anyhow::{anyhow, Result};
+
 /// A canvas implementation that stores pixel data in memory.
 ///
 /// This canvas provides basic pixel manipulation operations and can be used

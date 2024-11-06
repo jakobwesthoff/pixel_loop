@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 anyhow = "*"
 pixel_loop = { version = "*", path = "../../", default-features = false, features = [
-  "winit",
+  "pixels",
 ] }

@@ -17,9 +17,9 @@ pub use crossterm::CrosstermCanvas;
 pub mod in_memory;
 pub use in_memory::InMemoryCanvas;
 
-#[cfg(feature = "winit")]
+#[cfg(feature = "pixels")]
 pub mod pixels;
-#[cfg(feature = "winit")]
+#[cfg(feature = "pixels")]
 pub use pixels::PixelsCanvas;
 
 use crate::color::Color;
