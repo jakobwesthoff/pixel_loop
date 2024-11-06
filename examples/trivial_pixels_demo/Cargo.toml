@@ -1,5 +1,5 @@
 [package]
-name = "trivial_winit_demo"
+name = "trivial_pixels_demo"
 version = "0.1.0"
 edition = "2021"
 
