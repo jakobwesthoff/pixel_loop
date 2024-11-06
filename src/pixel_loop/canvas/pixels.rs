@@ -6,7 +6,7 @@
 
 use super::{Canvas, RenderableCanvas};
 use crate::color::{Color, ColorAsByteSlice};
-use crate::input::InputState;
+use crate::input::PixelsInputState;
 use anyhow::{Context, Result};
 use pixels::{Pixels, SurfaceTexture};
 use std::ops::Range;
@@ -114,6 +114,8 @@ impl Canvas for PixelsCanvas {
 }
 
 impl RenderableCanvas for PixelsCanvas {
+    type Input = PixelsInputState;
+
     fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
         if let Ok((x, y)) = self.pixels.window_pos_to_pixel((x as f32, y as f32)) {
             Some((x as u32, y as u32))
@@ -145,9 +147,7 @@ impl RenderableCanvas for PixelsCanvas {
     ///
     /// This implementation overrides the generic pixel_loop implementation, to
     /// handle the winit event_loop properly.
-    fn run<State: 'static, InputImpl: InputState + 'static>(
-        mut pixel_loop: crate::PixelLoop<State, InputImpl, Self>,
-    ) -> !
+    fn run<State: 'static>(mut pixel_loop: crate::PixelLoop<State, Self>) -> !
     where
         Self: Sized,
     {
@@ -155,9 +155,13 @@ impl RenderableCanvas for PixelsCanvas {
         // function again.
         let context = pixel_loop.canvas.take_context();
 
-        context
-            .event_loop
-            .run(move |event, _, control_flow| match event {
+        pixel_loop.begin().context("initialize pixel_loop").unwrap();
+        context.event_loop.run(move |event, _, control_flow| {
+            pixel_loop.input_state.handle_new_event(&event);
+            match event {
+                Event::LoopDestroyed => {
+                    pixel_loop.finish().context("finish pixel loop").unwrap();
+                }
                 Event::MainEventsCleared => {
                     pixel_loop
                         .next_loop()
@@ -173,6 +177,7 @@ impl RenderableCanvas for PixelsCanvas {
                     _ => {}
                 },
                 _ => {}
-            });
+            }
+        });
     }
 }

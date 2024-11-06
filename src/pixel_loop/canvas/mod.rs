@@ -26,7 +26,7 @@ use crate::color::Color;
 use crate::input::InputState;
 use crate::PixelLoop;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::ops::Range;
 
 /// Trait representing a basic canvas that can be drawn to.
@@ -206,52 +206,20 @@ pub trait Canvas {
 /// [InMemoryCanvas](crate::canvas::in_memory::InMemoryCanvas), which can be
 /// used to hold loaded images.
 pub trait RenderableCanvas: Canvas {
-    /// Renders the current state of the canvas.
-    ///
-    /// # Returns
-    /// A Result indicating whether the rendering was successful
+    type Input: InputState;
+
     fn render(&mut self) -> Result<()>;
-
-    /// Converts physical screen coordinates to canvas coordinates.
-    ///
-    /// # Arguments
-    /// * `x` - The physical x coordinate
-    /// * `y` - The physical y coordinate
-    ///
-    /// # Returns
-    /// Some((x, y)) with canvas coordinates if conversion is possible,
-    /// None otherwise
     fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
-
-    // @TODO: Not all surfaces are resizable, so this should be in someway optional?
-    /// Resizes the rendering surface.
-    ///
-    /// # Arguments
-    /// * `width` - The new width
-    /// * `height` - The new height
     fn resize_surface(&mut self, width: u32, height: u32);
-
-    // @TODO: Are all canvases resizable?
-    /// Resizes the canvas.
-    ///
-    /// # Arguments
-    /// * `width` - The new width
-    /// * `height` - The new height
     fn resize(&mut self, width: u32, height: u32);
 
-    fn run<State: 'static, InputImpl: InputState + 'static>(
-        mut pixel_loop: PixelLoop<State, InputImpl, Self>,
-    ) -> !
+    fn run<State: 'static>(mut pixel_loop: PixelLoop<State, Self>) -> !
     where
         Self: Sized,
     {
-        pixel_loop.begin().unwrap();
+        pixel_loop.begin().expect("begin pixel_loop");
         loop {
-            pixel_loop
-                .next_loop()
-                .context("run next pixel loop")
-                .unwrap()
+            pixel_loop.next_loop().expect("next_loop pixel_loop");
         }
-        // pixel_loop.finish().unwrap();
     }
 }

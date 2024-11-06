@@ -100,8 +100,12 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 /// * `state` - Mutable reference to the game state
 /// * `input` - Reference to the current input state
 /// * `canvas` - Mutable reference to the rendering canvas
-type UpdateFn<State, InputStateImpl, CanvasImpl> =
-    fn(&mut EngineEnvironment, &mut State, &InputStateImpl, &mut CanvasImpl) -> Result<()>;
+type UpdateFn<State, CanvasImpl> = fn(
+    &mut EngineEnvironment,
+    &mut State,
+    &<CanvasImpl as RenderableCanvas>::Input,
+    &mut CanvasImpl,
+) -> Result<()>;
 
 /// Function type for the render step of the game loop.
 ///
@@ -113,10 +117,10 @@ type UpdateFn<State, InputStateImpl, CanvasImpl> =
 /// * `input` - Reference to the current input state
 /// * `canvas` - Mutable reference to the rendering canvas
 /// * `dt` - Time elapsed since last render
-type RenderFn<State, InputStateImpl, CanvasImpl> = fn(
+type RenderFn<State, CanvasImpl> = fn(
     &mut EngineEnvironment,
     &mut State,
-    &InputStateImpl,
+    &<CanvasImpl as RenderableCanvas>::Input,
     &mut CanvasImpl,
     Duration,
 ) -> Result<()>;
@@ -146,23 +150,22 @@ impl Default for EngineEnvironment {
 ///
 /// Manages the game loop timing, state updates, and rendering.
 /// Uses a fixed timestep for updates while rendering as fast as possible.
-pub struct PixelLoop<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas> {
+pub struct PixelLoop<State, CanvasImpl: RenderableCanvas> {
     accumulator: Duration,
     current_time: Instant,
     last_time: Instant,
     update_timestep: Duration,
     state: State,
-    input_state: InputStateImpl,
+    input_state: CanvasImpl::Input,
     engine_state: EngineEnvironment,
     canvas: CanvasImpl,
-    update: UpdateFn<State, InputStateImpl, CanvasImpl>,
-    render: RenderFn<State, InputStateImpl, CanvasImpl>,
+    update: UpdateFn<State, CanvasImpl>,
+    render: RenderFn<State, CanvasImpl>,
 }
 
-impl<State, InputStateImpl, CanvasImpl> PixelLoop<State, InputStateImpl, CanvasImpl>
+impl<State, CanvasImpl> PixelLoop<State, CanvasImpl>
 where
     CanvasImpl: RenderableCanvas,
-    InputStateImpl: InputState,
 {
     /// Creates a new game loop instance.
     ///
@@ -179,10 +182,10 @@ where
     pub fn new(
         update_fps: usize,
         state: State,
-        input_state: InputStateImpl,
+        input_state: CanvasImpl::Input,
         canvas: CanvasImpl,
-        update: UpdateFn<State, InputStateImpl, CanvasImpl>,
-        render: RenderFn<State, InputStateImpl, CanvasImpl>,
+        update: UpdateFn<State, CanvasImpl>,
+        render: RenderFn<State, CanvasImpl>,
     ) -> Self {
         if update_fps == 0 {
             panic!("Designated FPS for updates needs to be > 0");
@@ -262,17 +265,13 @@ where
 ///
 /// # Errors
 /// Returns an error if initialization fails or if any update/render call fails
-pub fn run<
-    State: 'static,
-    InputStateImpl: InputState + 'static,
-    CanvasImpl: RenderableCanvas + 'static,
->(
+pub fn run<State: 'static, CanvasImpl: RenderableCanvas + 'static>(
     updates_per_second: usize,
     state: State,
-    input_state: InputStateImpl,
+    input_state: CanvasImpl::Input,
     canvas: CanvasImpl,
-    update: UpdateFn<State, InputStateImpl, CanvasImpl>,
-    render: RenderFn<State, InputStateImpl, CanvasImpl>,
+    update: UpdateFn<State, CanvasImpl>,
+    render: RenderFn<State, CanvasImpl>,
 ) -> ! {
     CanvasImpl::run(PixelLoop::new(
         updates_per_second,
@@ -281,5 +280,5 @@ pub fn run<
         canvas,
         update,
         render,
-    ));
+    ))
 }

@@ -7,6 +7,7 @@
 
 use super::{Canvas, RenderableCanvas};
 use crate::color::Color;
+use crate::input::CrosstermInputState;
 use anyhow::Result;
 use crossterm::style::{self, Print, SetColors};
 use crossterm::{cursor, ExecutableCommand};
@@ -257,6 +258,8 @@ impl CrosstermCanvas {
 }
 
 impl RenderableCanvas for CrosstermCanvas {
+    type Input = CrosstermInputState;
+
     fn render(&mut self) -> anyhow::Result<()> {
         self.wait_for_next_frame();
 

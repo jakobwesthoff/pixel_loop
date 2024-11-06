@@ -9,8 +9,10 @@ pub mod crossterm;
 #[cfg(feature = "crossterm")]
 pub use crossterm::CrosstermInputState;
 
-pub mod noop;
-pub use noop::NoopInputState;
+#[cfg(feature = "pixels")]
+pub mod pixels;
+#[cfg(feature = "pixels")]
+pub use pixels::PixelsInputState;
 
 use anyhow::Result;
 

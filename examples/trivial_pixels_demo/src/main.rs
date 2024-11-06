@@ -1,6 +1,7 @@
 use anyhow::Result;
 use pixel_loop::canvas::{Canvas, PixelsCanvas, RenderableCanvas};
 use pixel_loop::color::Color;
+use pixel_loop::input::{KeyboardKey, KeyboardState, PixelsInputState};
 use pixel_loop::rand::Rng;
 
 struct FlyingBox {
@@ -14,14 +15,12 @@ struct FlyingBox {
 }
 
 struct State {
-    space_is_pressed: bool,
     flying_box: FlyingBox,
 }
 
 impl State {
     fn new() -> Self {
         Self {
-            space_is_pressed: false,
             flying_box: FlyingBox {
                 x: 0,
                 y: 0,
@@ -40,19 +39,16 @@ fn main() -> Result<()> {
     let height = 480;
 
     let canvas = PixelsCanvas::new(width, height, "pixel_loop", false)?;
-
+    let input = PixelsInputState::new();
     let state = State::new();
 
     pixel_loop::run(
         120,
         state,
-        // @TODO: Just a placeholder. Implement proper input state for winint
-        // and use here!
-        pixel_loop::input::NoopInputState::new(),
+        input,
         canvas,
         |e, s, i, canvas| {
-            // @TODO: Replace with proper input handling once implemented.
-            if s.space_is_pressed {
+            if i.is_key_pressed(KeyboardKey::Space) {
                 // Randomise color on press of space
                 s.flying_box.color =
                     Color::from_rgb(e.rand.gen::<u8>(), e.rand.gen::<u8>(), e.rand.gen::<u8>());
@@ -73,8 +69,6 @@ fn main() -> Result<()> {
                 s.flying_box.y += s.flying_box.speed_y;
             }
 
-            // @TODO: Replace with proper input handling once implemented.
-            s.space_is_pressed = false;
             Ok(())
         },
         |e, s, i, canvas, dt| {
