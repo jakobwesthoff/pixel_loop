@@ -1,10 +1,7 @@
-use anyhow::{Context, Result};
-use pixel_loop::canvas::{Canvas, RenderableCanvas};
+use anyhow::Result;
+use pixel_loop::canvas::{Canvas, PixelsCanvas, RenderableCanvas};
 use pixel_loop::color::Color;
 use pixel_loop::rand::Rng;
-use pixel_loop::winit::winit::event::{
-    ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent,
-};
 
 struct FlyingBox {
     x: i64,
@@ -42,10 +39,7 @@ fn main() -> Result<()> {
     let width = 640;
     let height = 480;
 
-    let context = pixel_loop::winit::init_window("pixel loop", width, height, false)
-        .context("create winit window")?;
-    let canvas = pixel_loop::winit::init_pixels(context, width, height)
-        .context("initialize pixel canvas")?;
+    let canvas = PixelsCanvas::new(width, height, "pixel_loop", false)?;
 
     let state = State::new();
 

@@ -78,9 +78,6 @@ pub mod canvas;
 pub mod color;
 pub mod input;
 
-#[cfg(feature = "winit")]
-pub mod winit;
-
 // Re-exporting deps for convenience in code using pixel_loop
 #[cfg(feature = "crossterm")]
 pub use crossterm;

@@ -7,12 +7,33 @@
 use super::{Canvas, RenderableCanvas};
 use crate::color::{Color, ColorAsByteSlice};
 use crate::input::InputState;
-use crate::winit::WinitContext;
 use anyhow::{Context, Result};
-use pixels::Pixels;
+use pixels::{Pixels, SurfaceTexture};
 use std::ops::Range;
+use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
-use winit::event_loop::ControlFlow;
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::{Window, WindowBuilder};
+use winit_input_helper::WinitInputHelper;
+
+/// Context winit window-related resources.
+struct WinitContext {
+    pub(crate) event_loop: EventLoop<()>,
+    input_helper: WinitInputHelper,
+    window: Window,
+}
+
+impl WinitContext {
+    /// Returns a reference to the window.
+    pub fn window_ref(&self) -> &Window {
+        &self.window
+    }
+
+    /// Returns a reference to the input helper.
+    pub fn input_helper_ref(&self) -> &WinitInputHelper {
+        &self.input_helper
+    }
+}
 
 /// A canvas implementation that renders to a window using the pixels crate.
 ///
@@ -48,8 +69,38 @@ impl PixelsCanvas {
     /// `init_pixels` factory function provided by the winit module.
     /// This is to ensure proper initialization of the window and event loop.
     /// See the example in [PixelsCanvas](crate::canvas::pixels::PixelsCanvas) for more details.
-    pub fn new(context: WinitContext, pixels: Pixels) -> Self {
-        Self { context: Some(context), pixels }
+    pub fn new(width: u32, height: u32, title: &str, resizable: bool) -> Result<Self> {
+        let event_loop = EventLoop::new();
+        let input_helper = WinitInputHelper::new();
+        let window = {
+            let size = LogicalSize::new(width as f64, height as f64);
+            WindowBuilder::new()
+                .with_title(title)
+                .with_inner_size(size)
+                .with_min_inner_size(size)
+                .with_resizable(resizable)
+                .build(&event_loop)?
+        };
+
+        let context = WinitContext {
+            event_loop,
+            input_helper,
+            window,
+        };
+
+        let physical_dimensions = context.window_ref().inner_size();
+        let surface_texture = SurfaceTexture::new(
+            physical_dimensions.width,
+            physical_dimensions.height,
+            context.window_ref(),
+        );
+        let pixels =
+            Pixels::new(width, height, surface_texture).context("create pixels surface")?;
+
+        Ok(Self {
+            context: Some(context),
+            pixels,
+        })
     }
 }
 
@@ -117,22 +168,24 @@ impl RenderableCanvas for PixelsCanvas {
         Self: Sized,
     {
         let context = pixel_loop.canvas.take_context();
-        context.event_loop.run(move |event, _, control_flow| match event {
-            Event::MainEventsCleared => {
-                pixel_loop
-                    .next_loop()
-                    .context("run next pixel loop")
-                    .unwrap();
-            }
-            Event::WindowEvent {
-                event: win_event, ..
-            } => match win_event {
-                WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
+        context
+            .event_loop
+            .run(move |event, _, control_flow| match event {
+                Event::MainEventsCleared => {
+                    pixel_loop
+                        .next_loop()
+                        .context("run next pixel loop")
+                        .unwrap();
                 }
+                Event::WindowEvent {
+                    event: win_event, ..
+                } => match win_event {
+                    WindowEvent::CloseRequested => {
+                        *control_flow = ControlFlow::Exit;
+                    }
+                    _ => {}
+                },
                 _ => {}
-            },
-            _ => {}
-        });
+            });
     }
 }
