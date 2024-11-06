@@ -40,7 +40,7 @@ impl InMemoryCanvas {
     /// ```
     pub fn new(width: u32, height: u32, color: &Color) -> Self {
         Self {
-            buffer: vec![color.clone(); (width * height) as usize],
+            buffer: vec![*color; (width * height) as usize],
             width,
             height,
         }
@@ -79,8 +79,8 @@ impl InMemoryCanvas {
         use stb_image::image;
         use stb_image::image::LoadResult::*;
         match image::load_from_memory(bytes) {
-            Error(msg) => return Err(anyhow!("Could not load image from memory: {msg}")),
-            ImageF32(_) => return Err(anyhow!("Could not load hdr image from memory")),
+            Error(msg) => Err(anyhow!("Could not load image from memory: {msg}")),
+            ImageF32(_) => Err(anyhow!("Could not load hdr image from memory")),
             ImageU8(image) => {
                 if image.depth != 3 {
                     return Err(anyhow!(
@@ -98,11 +98,11 @@ impl InMemoryCanvas {
                     ))
                 }
 
-                return Ok(Self {
+                Ok(Self {
                     width: image.width as u32,
                     height: image.height as u32,
                     buffer,
-                });
+                })
             }
         }
     }

@@ -114,7 +114,7 @@ impl Canvas for CrosstermCanvas {
 
 /// Unicode character representing the upper half block used for drawing half
 /// character height (quadratic) pixels.
-const UNICODE_UPPER_HALF_BLOCK: &'static str = "▀";
+const UNICODE_UPPER_HALF_BLOCK: &str = "▀";
 
 /// Represents a region of the screen that needs to be updated.
 ///
@@ -195,10 +195,8 @@ impl CrosstermCanvas {
 
                     let patch = active_patch.as_mut().unwrap();
                     patch.add_two_row_pixel(&y1, &y2)?;
-                } else {
-                    if active_patch.is_some() {
-                        patches.push(active_patch.take().unwrap());
-                    }
+                } else if active_patch.is_some() {
+                    patches.push(active_patch.take().unwrap());
                 }
             }
             if active_patch.is_some() {
@@ -210,7 +208,7 @@ impl CrosstermCanvas {
             patches.push(active_patch.take().unwrap());
         }
 
-        return Ok(patches);
+        Ok(patches)
     }
 
     fn elapsed_since_last_frame(&self) -> u64 {

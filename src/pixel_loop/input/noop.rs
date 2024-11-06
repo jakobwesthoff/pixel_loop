@@ -11,6 +11,12 @@ use super::{InputState, KeyboardKey, KeyboardState};
 /// don't require input handling.
 pub struct NoopInputState {}
 
+impl Default for NoopInputState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NoopInputState {
     /// Create a new `NoopInputState`.
     pub fn new() -> Self {

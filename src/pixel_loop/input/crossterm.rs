@@ -26,6 +26,12 @@ pub struct CrosstermInputState {
     enhanced_keyboard: bool,
 }
 
+impl Default for CrosstermInputState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CrosstermInputState {
     /// Creates a new CrosstermInputState with default settings.
     ///
@@ -189,7 +195,7 @@ fn decrement_key_ref_counts(hmap: &mut HashMap<KeyboardKey, usize>) -> Vec<Keybo
     // Shortcut if our length is 0. We are doing this, as this is mostly the
     // case, when no key is pressed. The hashmap iteration always has a
     // complexity of O(capacity) not O(len) due to internal implementation.
-    if hmap.len() == 0 {
+    if hmap.is_empty() {
         return removed_keys;
     }
 

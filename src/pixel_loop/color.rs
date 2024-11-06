@@ -35,7 +35,7 @@ impl ColorAsByteSlice for [Color] {
         let byte_slice = unsafe {
             std::slice::from_raw_parts(
                 self.as_ptr() as *const u8,
-                std::mem::size_of::<Color>() * self.len(),
+                std::mem::size_of_val(self),
             )
         };
         byte_slice
@@ -212,7 +212,7 @@ impl From<HslColor> for Color {
             if t < 2f64 / 3f64 {
                 return p + (q - p) * (2f64 / 3f64 - t) * 6f64;
             };
-            return p;
+            p
         }
 
         let r;

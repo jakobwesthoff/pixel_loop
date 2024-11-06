@@ -102,9 +102,9 @@ pub trait Canvas {
                         &row.iter()
                             .map(|c| {
                                 Color::from_rgb(
-                                    (c.r as usize * tint.r as usize / 255 as usize) as u8,
-                                    (c.g as usize * tint.g as usize / 255 as usize) as u8,
-                                    (c.b as usize * tint.b as usize / 255 as usize) as u8,
+                                    (c.r as usize * tint.r as usize / 255_usize) as u8,
+                                    (c.g as usize * tint.g as usize / 255_usize) as u8,
+                                    (c.b as usize * tint.b as usize / 255_usize) as u8,
                                 )
                             })
                             .collect::<Vec<Color>>(),
@@ -187,7 +187,7 @@ pub trait Canvas {
     /// Draw a filled rectangle at a given position with a given width and height
     fn filled_rect(&mut self, sx: i64, sy: i64, width: u32, height: u32, color: &Color) {
         if let Some((sx, sy, width, height)) = self.clip_rect(sx, sy, width, height) {
-            let color_row = vec![color.clone(); width as usize];
+            let color_row = vec![*color; width as usize];
             for y in sy..sy + height {
                 self.set_range(
                     (y * self.width() + sx) as usize..(y * self.width() + sx + width) as usize,
