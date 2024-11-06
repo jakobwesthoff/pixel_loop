@@ -6,9 +6,13 @@
 
 use super::{Canvas, RenderableCanvas};
 use crate::color::{Color, ColorAsByteSlice};
+use crate::input::InputState;
+use crate::winit::WinitContext;
 use anyhow::{Context, Result};
 use pixels::Pixels;
 use std::ops::Range;
+use winit::event::{Event, WindowEvent};
+use winit::event_loop::ControlFlow;
 
 /// A canvas implementation that renders to a window using the pixels crate.
 ///
@@ -30,6 +34,7 @@ use std::ops::Range;
 pub struct PixelsCanvas {
     /// The underlying pixels instance for window rendering
     pixels: Pixels,
+    context: Option<WinitContext>,
 }
 
 impl PixelsCanvas {
@@ -43,8 +48,14 @@ impl PixelsCanvas {
     /// `init_pixels` factory function provided by the winit module.
     /// This is to ensure proper initialization of the window and event loop.
     /// See the example in [PixelsCanvas](crate::canvas::pixels::PixelsCanvas) for more details.
-    pub fn new(pixels: Pixels) -> Self {
-        Self { pixels }
+    pub fn new(context: WinitContext, pixels: Pixels) -> Self {
+        Self { context: Some(context), pixels }
+    }
+}
+
+impl PixelsCanvas {
+    fn take_context(&mut self) -> WinitContext {
+        self.context.take().unwrap()
     }
 }
 
@@ -97,5 +108,31 @@ impl RenderableCanvas for PixelsCanvas {
         self.pixels
             .resize_buffer(width, height)
             .expect("to be able to resize buffer");
+    }
+
+    fn run<State: 'static, InputImpl: InputState + 'static>(
+        mut pixel_loop: crate::PixelLoop<State, InputImpl, Self>,
+    ) -> !
+    where
+        Self: Sized,
+    {
+        let context = pixel_loop.canvas.take_context();
+        context.event_loop.run(move |event, _, control_flow| match event {
+            Event::MainEventsCleared => {
+                pixel_loop
+                    .next_loop()
+                    .context("run next pixel loop")
+                    .unwrap();
+            }
+            Event::WindowEvent {
+                event: win_event, ..
+            } => match win_event {
+                WindowEvent::CloseRequested => {
+                    *control_flow = ControlFlow::Exit;
+                }
+                _ => {}
+            },
+            _ => {}
+        });
     }
 }

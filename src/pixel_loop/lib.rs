@@ -87,7 +87,7 @@ pub use crossterm;
 pub use rand;
 pub use rand_xoshiro;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use canvas::RenderableCanvas;
 use input::InputState;
 use rand::SeedableRng;
@@ -149,7 +149,7 @@ impl Default for EngineEnvironment {
 ///
 /// Manages the game loop timing, state updates, and rendering.
 /// Uses a fixed timestep for updates while rendering as fast as possible.
-struct PixelLoop<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas> {
+pub struct PixelLoop<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas> {
     accumulator: Duration,
     current_time: Instant,
     last_time: Instant,
@@ -265,25 +265,24 @@ where
 ///
 /// # Errors
 /// Returns an error if initialization fails or if any update/render call fails
-pub fn run<State, InputStateImpl: InputState, CanvasImpl: RenderableCanvas>(
+pub fn run<
+    State: 'static,
+    InputStateImpl: InputState + 'static,
+    CanvasImpl: RenderableCanvas + 'static,
+>(
     updates_per_second: usize,
     state: State,
     input_state: InputStateImpl,
     canvas: CanvasImpl,
     update: UpdateFn<State, InputStateImpl, CanvasImpl>,
     render: RenderFn<State, InputStateImpl, CanvasImpl>,
-) -> Result<()> {
-    let mut pixel_loop = PixelLoop::new(
+) -> ! {
+    CanvasImpl::run(PixelLoop::new(
         updates_per_second,
         state,
         input_state,
         canvas,
         update,
         render,
-    );
-
-    pixel_loop.begin()?;
-    loop {
-        pixel_loop.next_loop().context("run next pixel loop")?;
-    }
+    ));
 }

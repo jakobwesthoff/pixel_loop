@@ -109,7 +109,7 @@ type WinitEventFn<State, CanvasImpl> = fn(
 
 /// Context holding window-related resources.
 pub struct WinitContext {
-    event_loop: EventLoop<()>,
+    pub (crate) event_loop: EventLoop<()>,
     input_helper: WinitInputHelper,
     window: Window,
 }
@@ -185,7 +185,7 @@ pub fn init_window(
 /// let context = winit::init_window("My Game", 640, 480, true)?;
 /// let canvas = winit::init_pixels(&context, 640, 480)?;
 /// ```
-pub fn init_pixels(context: &WinitContext, width: u32, height: u32) -> Result<PixelsCanvas> {
+pub fn init_pixels(context: WinitContext, width: u32, height: u32) -> Result<PixelsCanvas> {
     let physical_dimensions = context.window_ref().inner_size();
     let surface_texture = SurfaceTexture::new(
         physical_dimensions.width,
@@ -193,71 +193,5 @@ pub fn init_pixels(context: &WinitContext, width: u32, height: u32) -> Result<Pi
         context.window_ref(),
     );
     let pixels = Pixels::new(width, height, surface_texture).context("create pixels surface")?;
-    Ok(PixelsCanvas::new(pixels))
-}
-
-/// Runs the game loop with a windowed interface.
-///
-/// This is similar to the standard run function but includes window event handling.
-///
-/// # Arguments
-/// * `updates_per_second` - Target rate for fixed timestep updates
-/// * `state` - Initial game state
-/// * `input_state` - Input handling implementation
-/// * `context` - Window context
-/// * `canvas` - Rendering canvas
-/// * `update` - Update function called at fixed timestep
-/// * `render` - Render function called as often as possible
-/// * `handle_event` - Function for handling window events
-///
-/// # Note
-/// This function never returns as it takes control of the main event loop
-pub fn run<State: 'static, InputStateImpl: InputState + 'static>(
-    updates_per_second: usize,
-    state: State,
-    input_state: InputStateImpl,
-    mut context: WinitContext,
-    canvas: PixelsCanvas,
-    update: UpdateFn<State, InputStateImpl, PixelsCanvas>,
-    render: RenderFn<State, InputStateImpl, PixelsCanvas>,
-    handle_event: WinitEventFn<State, PixelsCanvas>,
-) -> ! {
-    let mut pixel_loop = PixelLoop::new(
-        updates_per_second,
-        state,
-        input_state,
-        canvas,
-        update,
-        render,
-    );
-
-    context.event_loop.run(move |event, _, control_flow| {
-        handle_event(
-            &mut pixel_loop.engine_state,
-            &mut pixel_loop.state,
-            &mut pixel_loop.canvas,
-            &context.window,
-            &mut context.input_helper,
-            &event,
-        )
-        .context("handle user events")
-        .unwrap();
-        match event {
-            Event::MainEventsCleared => {
-                pixel_loop
-                    .next_loop()
-                    .context("run next pixel loop")
-                    .unwrap();
-            }
-            Event::WindowEvent {
-                event: win_event, ..
-            } => match win_event {
-                WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
-                }
-                _ => {}
-            },
-            _ => {}
-        }
-    });
+    Ok(PixelsCanvas::new(context, pixels))
 }

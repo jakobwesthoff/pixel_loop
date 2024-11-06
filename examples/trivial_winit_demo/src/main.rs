@@ -44,18 +44,17 @@ fn main() -> Result<()> {
 
     let context = pixel_loop::winit::init_window("pixel loop", width, height, false)
         .context("create winit window")?;
-    let canvas = pixel_loop::winit::init_pixels(&context, width, height)
+    let canvas = pixel_loop::winit::init_pixels(context, width, height)
         .context("initialize pixel canvas")?;
 
     let state = State::new();
 
-    pixel_loop::winit::run(
+    pixel_loop::run(
         120,
         state,
         // @TODO: Just a placeholder. Implement proper input state for winint
         // and use here!
         pixel_loop::input::NoopInputState::new(),
-        context,
         canvas,
         |e, s, i, canvas| {
             // @TODO: Replace with proper input handling once implemented.
@@ -101,29 +100,6 @@ fn main() -> Result<()> {
 
             canvas.render()?;
 
-            Ok(())
-        },
-        |e, s, canvas, _, input, event| {
-            // @TODO: Remove completely and replace with proper input handling
-            // once implemented.
-            match event {
-                Event::WindowEvent {
-                    event: win_event, ..
-                } => match win_event {
-                    WindowEvent::KeyboardInput { input, .. } => match input {
-                        KeyboardInput {
-                            state: ElementState::Released,
-                            virtual_keycode: Some(VirtualKeyCode::Space),
-                            ..
-                        } => {
-                            s.space_is_pressed = true;
-                        }
-                        _ => {}
-                    },
-                    _ => {}
-                },
-                _ => {}
-            }
             Ok(())
         },
     );

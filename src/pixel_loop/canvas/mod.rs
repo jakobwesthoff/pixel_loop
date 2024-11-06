@@ -23,8 +23,10 @@ pub mod pixels;
 pub use pixels::PixelsCanvas;
 
 use crate::color::Color;
+use crate::input::InputState;
+use crate::PixelLoop;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use std::ops::Range;
 
 /// Trait representing a basic canvas that can be drawn to.
@@ -236,4 +238,20 @@ pub trait RenderableCanvas: Canvas {
     /// * `width` - The new width
     /// * `height` - The new height
     fn resize(&mut self, width: u32, height: u32);
+
+    fn run<State: 'static, InputImpl: InputState + 'static>(
+        mut pixel_loop: PixelLoop<State, InputImpl, Self>,
+    ) -> !
+    where
+        Self: Sized,
+    {
+        pixel_loop.begin().unwrap();
+        loop {
+            pixel_loop
+                .next_loop()
+                .context("run next pixel loop")
+                .unwrap()
+        }
+        // pixel_loop.finish().unwrap();
+    }
 }
