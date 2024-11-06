@@ -51,6 +51,8 @@ impl InMemoryCanvas {
     /// [stb_image](https://github.com/nothings/stb/blob/master/stb_image.h)
     /// library.
     ///
+    /// Only available if the `image-load` feature is enabled.
+    ///
     /// # Arguments
     /// * `bytes` - Raw image bytes to load
     ///
@@ -71,6 +73,7 @@ impl InMemoryCanvas {
     /// let image_bytes = std::fs::read("example.jpg").unwrap();
     /// let canvas = InMemoryCanvas::from_in_memory_image(&image_bytes)?;
     /// ```
+    #[cfg(feature = "image-load")]
     pub fn from_in_memory_image(bytes: &[u8]) -> Result<Self> {
         use stb_image::image;
         use stb_image::image::LoadResult::*;

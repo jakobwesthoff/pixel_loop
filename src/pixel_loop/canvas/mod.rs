@@ -14,9 +14,7 @@ pub mod crossterm;
 #[cfg(feature = "crossterm")]
 pub use crossterm::CrosstermCanvas;
 
-#[cfg(feature = "image-load")]
 pub mod in_memory;
-#[cfg(feature = "image-load")]
 pub use in_memory::InMemoryCanvas;
 
 #[cfg(feature = "winit")]
