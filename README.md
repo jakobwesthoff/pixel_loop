@@ -49,8 +49,7 @@ struct GameState {
 }
 
 fn main() -> Result<()> {
-    let mut canvas = CrosstermCanvas::new(80, 24);  // Terminal size
-    canvas.set_refresh_limit(60);
+    let mut canvas = CrosstermCanvas::new();  // Terminal size
 
     let state = GameState { box_pos: (0, 0) };
     let input = CrosstermInputState::new();

@@ -9,6 +9,7 @@ use super::{Canvas, RenderableCanvas};
 use crate::color::Color;
 use crate::input::CrosstermInputState;
 use anyhow::Result;
+use crossterm::event::Event;
 use crossterm::style::{self, Print, SetColors};
 use crossterm::{cursor, ExecutableCommand};
 use std::io::Write;
@@ -39,9 +40,11 @@ use std::time::{Duration, Instant};
 /// ```
 pub struct CrosstermCanvas {
     /// Width of the canvas in pixels (characters)
-    width: u16,
+    width: u32,
     /// Height of the canvas in pixels (half characters)
-    height: u16,
+    height: u32,
+    /// Resizability of the canvas
+    resizable: bool,
     /// Current frame buffer
     buffer: Vec<Color>,
     /// Previous frame buffer for change detection
@@ -53,27 +56,54 @@ pub struct CrosstermCanvas {
 }
 
 impl CrosstermCanvas {
-    /// Creates a new terminal canvas with the specified dimensions.
+    /// Creates a new terminal canvas automatically toking the size of the
+    /// terminal it is spawned in.
     ///
-    /// # Arguments
-    /// * `width` - Width of the canvas in pixels (characters)
-    /// * `height` - Height of the canvas in pixels (half characters)
+    /// A canvas based on the terminals size is resizable by default.
     ///
     /// # Example
     /// ```
     /// use pixel_loop::canvas::CrosstermCanvas;
     ///
-    /// let canvas = CrosstermCanvas::new(80, 24);
+    /// let canvas = CrosstermCanvas::new();
     /// ```
-    pub fn new(width: u16, height: u16) -> Self {
-        Self {
+    pub fn new() -> Self {
+        let (columns, rows) = crossterm::terminal::size().unwrap();
+        Self::new_with_size(columns as u32, rows as u32 * 2).with_resizable(true)
+    }
+
+    /// Creates a new terminal canvas with the specified dimensions.
+    ///
+    /// A canvas with specified dimensions is not resizable by default.
+    ///
+    /// # Arguments
+    /// * `width` - The width of the canvas in characters
+    /// * `height` - The height of the canvas in half characters
+    ///
+    /// # Example
+    /// ```
+    /// use pixel_loop::canvas::CrosstermCanvas;
+    ///
+    /// let canvas = CrosstermCanvas::new(80, 42);
+    /// ```
+    pub fn new_with_size(width: u32, height: u32) -> Self {
+        let mut canvas = Self {
             width,
             height,
-            buffer: vec![Color::from_rgb(0, 0, 0); width as usize * height as usize],
-            previous_buffer: vec![Color::from_rgba(0, 0, 0, 0); width as usize * height as usize],
+            resizable: false,
+            buffer: vec![],
+            previous_buffer: vec![],
             frame_limit_nanos: 1_000_000_000 / 60,
             last_frame_time: Instant::now(),
-        }
+        };
+        canvas.surface_resized(width, height, None);
+        canvas
+    }
+
+    /// Sets the canvas to be resizable or not.
+    pub fn with_resizable(mut self, resizable: bool) -> Self {
+        self.resizable = resizable;
+        self
     }
 
     /// Sets the frame rate limit.
@@ -87,11 +117,12 @@ impl CrosstermCanvas {
     /// ```
     /// use pixel_loop::canvas::CrosstermCanvas;
     ///
-    /// let mut canvas = CrosstermCanvas::new(80, 24);
-    /// canvas.set_refresh_limit(30); // Limit to 30 FPS
+    /// // Limit the frame rate to 30 frames per second
+    /// let mut canvas = CrosstermCanvas::new(80, 24).with_refresh_limit(30);
     /// ```
-    pub fn set_refresh_limit(&mut self, limit: usize) {
+    pub fn with_refresh_limit(mut self, limit: usize) -> Self {
         self.frame_limit_nanos = 1_000_000_000u64 / limit as u64;
+        self
     }
 }
 
@@ -271,7 +302,10 @@ impl RenderableCanvas for CrosstermCanvas {
         for patch in patches {
             patch.apply(&mut buffer)?;
         }
-        buffer.execute(cursor::MoveTo(self.width, self.height / 2))?;
+        buffer.execute(cursor::MoveTo(
+            self.width.try_into()?,
+            (self.height / 2).try_into()?,
+        ))?;
         buffer.execute(cursor::Show)?;
         stdout.write_all(&buffer)?;
         stdout.flush()?;
@@ -281,15 +315,45 @@ impl RenderableCanvas for CrosstermCanvas {
         Ok(())
     }
 
-    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
-        todo!("Not supported (yet)")
+    fn surface_resized(&mut self, width: u32, height: u32, scale_factor: Option<f64>) {
+        self.width = width;
+        self.height = height;
+        self.buffer = vec![Color::from_rgb(0, 0, 0); width as usize * height as usize];
+        self.previous_buffer = vec![Color::from_rgba(0, 0, 0, 0); width as usize * height as usize];
     }
 
-    fn resize_surface(&mut self, width: u32, height: u32) {
-        todo!("Not supported (yet)")
-    }
+    /// Runs the pixel loop.
+    fn run<State: 'static>(mut pixel_loop: crate::PixelLoop<State, Self>) -> ! {
+        fn get_all_next_crossterm_events() -> Result<Vec<Event>> {
+            use crossterm::event::{poll, read};
+            let mut events = vec![];
+            loop {
+                if poll(Duration::from_secs(0))? {
+                    let event = read()?;
+                    events.push(event);
+                } else {
+                    break;
+                }
+            }
 
-    fn resize(&mut self, width: u32, height: u32) {
-        todo!("Not supported (yet)")
+            Ok(events)
+        }
+
+        pixel_loop.begin().expect("begin pixel_loop");
+        loop {
+            for event in get_all_next_crossterm_events().expect("get_all_next_crossterm_events") {
+                // Handle resizeing of the terminal
+                if let Event::Resize(columns, rows) = event {
+                    pixel_loop
+                        .canvas
+                        .surface_resized(columns as u32, rows as u32 * 2, None);
+                }
+
+                // Move elements to input state handler
+                pixel_loop.input_state.handle_new_event(event);
+            }
+
+            pixel_loop.next_loop().expect("next_loop pixel_loop");
+        }
     }
 }

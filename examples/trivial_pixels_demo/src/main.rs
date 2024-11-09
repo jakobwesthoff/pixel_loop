@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     let width = 640;
     let height = 480;
 
-    let canvas = PixelsCanvas::new(width, height, "pixel_loop", false)?;
+    let canvas = PixelsCanvas::new(width, height, Some(2), "pixel_loop", true)?;
     let input = PixelsInputState::new();
     let state = State::new();
 

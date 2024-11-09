@@ -9,6 +9,11 @@ use super::Canvas;
 use crate::color::Color;
 use std::ops::Range;
 
+#[cfg(feature = "stb-image")]
+use anyhow::anyhow;
+#[cfg(feature = "stb-image")]
+use anyhow::Result;
+
 /// A canvas implementation that stores pixel data in memory.
 ///
 /// This canvas provides basic pixel manipulation operations and can be used

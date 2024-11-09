@@ -209,17 +209,33 @@ pub trait RenderableCanvas: Canvas {
     type Input: InputState;
 
     fn render(&mut self) -> Result<()>;
-    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)>;
-    fn resize_surface(&mut self, width: u32, height: u32);
-    fn resize(&mut self, width: u32, height: u32);
 
-    fn run<State: 'static>(mut pixel_loop: PixelLoop<State, Self>) -> !
+    /// Called when the surface of the canvas has been resized.
+    /// The physical_dimensions of the new rendering surface are supplied.
+    ///
+    /// A call to this function happens when the window is resized, the terminal
+    /// size changes, or when any other kind of render surface changes its size
+    /// in any other way.
+    ///
+    /// The optional scale factor is the ratio of the  physical dimensions
+    /// supplied to the logical size of the surface based on the current
+    /// rendering setup of the target system.
+    fn surface_resized(&mut self, width: u32, height: u32, scale_factor: Option<f64>);
+
+    /// Main run loop for a pixel loop that renders to this canvas.
+    ///
+    /// A fully instantiated and configured pixel loop instance is provided to this method.
+    ///
+    /// A minimal implementation of this method would look like this:
+    /// ```rust
+    /// {
+    ///    pixel_loop.begin().expect("begin pixel_loop");
+    ///    loop {
+    ///        pixel_loop.next_loop().expect("next_loop pixel_loop");
+    ///    }
+    /// }
+    /// ```
+    fn run<State: 'static>(pixel_loop: PixelLoop<State, Self>) -> !
     where
-        Self: Sized,
-    {
-        pixel_loop.begin().expect("begin pixel_loop");
-        loop {
-            pixel_loop.next_loop().expect("next_loop pixel_loop");
-        }
-    }
+        Self: Sized;
 }

@@ -35,10 +35,13 @@ struct WinitContext {
 /// let canvas = PixelsCanvas::new(640, 480, "pixel loop", false)?;
 /// ```
 pub struct PixelsCanvas {
-    /// The underlying pixels instance for window rendering
-    pixels: Pixels,
+    /// The scale factor of the canvas supplied by the user to create a more
+    /// "blocky" pixel feeling.
+    user_scale_factor: u32,
     /// The winit window context
     context: Option<WinitContext>,
+    /// The underlying pixels instance for window rendering
+    pixels: Pixels,
 }
 
 impl PixelsCanvas {
@@ -47,17 +50,31 @@ impl PixelsCanvas {
     /// # Arguments
     /// * `width` - The width of the canvas in pixels
     /// * `height` - The height of the canvas in pixels
+    /// * `scale_factor` - The scale factor of real window pixels to rendering canvas pixels
     /// * `title` - The title of the window
-    /// * `resizable` - Whether the window should be resizable
-    pub fn new(width: u32, height: u32, title: &str, resizable: bool) -> Result<Self> {
+    /// * `resizable` - Whether the window should be resizable (This implies, that the pixel canvas size can change)
+    pub fn new(
+        width: u32,
+        height: u32,
+        scale_factor: Option<u32>,
+        title: &str,
+        resizable: bool,
+    ) -> Result<Self> {
         let event_loop = EventLoop::new();
         let input_helper = WinitInputHelper::new();
         let window = {
-            let size = LogicalSize::new(width as f64, height as f64);
+            // This is the size, that we essentially want to use as window size,
+            // if the screen is rendered at 100% scale.
+            // It might not be the resolution, that is in the end actually
+            // rendered.
+            // And that may be again different from the size of the pixels
+            // buffer, as this is scaled by the user supplied scale_factor as
+            // well.
+            let logical_window_size = LogicalSize::new(width as f64, height as f64);
             WindowBuilder::new()
                 .with_title(title)
-                .with_inner_size(size)
-                .with_min_inner_size(size)
+                .with_inner_size(logical_window_size)
+                .with_min_inner_size(logical_window_size)
                 .with_resizable(resizable)
                 .build(&event_loop)?
         };
@@ -68,16 +85,24 @@ impl PixelsCanvas {
             window,
         };
 
+        // This is the actual size of the window in pixels, that is rendered.
+        // Scaled by by the window.scale_factor
         let physical_dimensions = context.window.inner_size();
         let surface_texture = SurfaceTexture::new(
             physical_dimensions.width,
             physical_dimensions.height,
             &context.window,
         );
-        let pixels =
-            Pixels::new(width, height, surface_texture).context("create pixels surface")?;
+
+        // This is the size of the pixels buffer, that is based on the logical
+        // (non system scaled) window size and the user supplied scale_factor
+        let scaled_buffer_width = width / scale_factor.unwrap_or(1);
+        let scaled_buffer_height = height / scale_factor.unwrap_or(1);
+        let pixels = Pixels::new(scaled_buffer_width, scaled_buffer_height, surface_texture)
+            .context("create pixels surface")?;
 
         Ok(Self {
+            user_scale_factor: scale_factor.unwrap_or(1),
             context: Some(context),
             pixels,
         })
@@ -116,13 +141,14 @@ impl Canvas for PixelsCanvas {
 impl RenderableCanvas for PixelsCanvas {
     type Input = PixelsInputState;
 
-    fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
-        if let Ok((x, y)) = self.pixels.window_pos_to_pixel((x as f32, y as f32)) {
-            Some((x as u32, y as u32))
-        } else {
-            None
-        }
-    }
+    // @TODO: Move to input when handling mouse control there
+    // fn physical_pos_to_canvas_pos(&self, x: f64, y: f64) -> Option<(u32, u32)> {
+    //     if let Ok((x, y)) = self.pixels.window_pos_to_pixel((x as f32, y as f32)) {
+    //         Some((x as u32, y as u32))
+    //     } else {
+    //         None
+    //     }
+    // }
 
     fn render(&mut self) -> Result<()> {
         self.pixels
@@ -131,15 +157,19 @@ impl RenderableCanvas for PixelsCanvas {
         Ok(())
     }
 
-    fn resize_surface(&mut self, width: u32, height: u32) {
+    fn surface_resized(&mut self, width: u32, height: u32, window_scale_factor: Option<f64>) {
         self.pixels
             .resize_surface(width, height)
             .expect("to be able to resize surface");
-    }
 
-    fn resize(&mut self, width: u32, height: u32) {
+        // First scale the display size by the window scale factor, then scale
+        // by the user factor as well.
+        let display_scaled_width = (width as f64 / window_scale_factor.unwrap_or(1.0)) as u32;
+        let display_scaled_height = (height as f64 / window_scale_factor.unwrap_or(1.0)) as u32;
+        let user_scaled_width = display_scaled_width / self.user_scale_factor;
+        let user_scaled_height = display_scaled_height / self.user_scale_factor;
         self.pixels
-            .resize_buffer(width, height)
+            .resize_buffer(user_scaled_width, user_scaled_height)
             .expect("to be able to resize buffer");
     }
 
@@ -171,6 +201,15 @@ impl RenderableCanvas for PixelsCanvas {
                 Event::WindowEvent {
                     event: win_event, ..
                 } => match win_event {
+                    // Handle window resize events and correct buffer and
+                    // surface sizes
+                    WindowEvent::Resized(physical_size) => {
+                        pixel_loop.canvas.surface_resized(
+                            physical_size.width,
+                            physical_size.height,
+                            Some(context.window.scale_factor()),
+                        );
+                    }
                     WindowEvent::CloseRequested => {
                         *control_flow = ControlFlow::Exit;
                     }

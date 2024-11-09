@@ -11,7 +11,6 @@ use crossterm::event::{
 };
 use crossterm::execute;
 use std::collections::{HashMap, HashSet};
-use std::time::Duration;
 
 /// Input state handler for terminal input using crossterm.
 ///
@@ -19,6 +18,7 @@ use std::time::Duration;
 /// - Enhanced mode provides accurate key press/release events if supported by the terminal
 /// - Basic mode falls back to simulated key releases based on timing
 pub struct CrosstermInputState {
+    event_queue: Vec<Event>,
     keys_down: HashMap<KeyboardKey, usize>,
     keys_pressed_this_update: HashSet<KeyboardKey>,
     keys_released_this_update: HashSet<KeyboardKey>,
@@ -43,6 +43,7 @@ impl CrosstermInputState {
     /// ```
     pub fn new() -> Self {
         Self {
+            event_queue: vec![],
             keys_down: HashMap::new(),
             keys_pressed_this_update: HashSet::new(),
             keys_released_this_update: HashSet::new(),
@@ -175,20 +176,6 @@ fn map_crossterm_keycode_to_pixel_loop(keycode: &crossterm::event::KeyCode) -> O
     }
 }
 
-fn get_all_next_crossterm_events() -> Result<Vec<Event>> {
-    use crossterm::event::{poll, read};
-    let mut events = vec![];
-    loop {
-        if poll(Duration::from_secs(0))? {
-            let event = read()?;
-            events.push(event);
-        } else {
-            break;
-        }
-    }
-
-    Ok(events)
-}
 
 fn decrement_key_ref_counts(hmap: &mut HashMap<KeyboardKey, usize>) -> Vec<KeyboardKey> {
     let mut removed_keys = vec![];
@@ -216,6 +203,14 @@ fn decrement_key_ref_counts(hmap: &mut HashMap<KeyboardKey, usize>) -> Vec<Keybo
 }
 
 impl CrosstermInputState {
+    pub(crate) fn handle_new_event(&mut self, event: Event) {
+        self.event_queue.push(event);
+    }
+
+    fn take_all_queued_events(&mut self) -> Vec<Event> {
+        self.event_queue.drain(..).collect()
+    }
+
     fn next_loop_fallback(&mut self, next_events: Vec<Event>) -> Result<()> {
         use crossterm::event::{KeyEvent, KeyEventKind};
 
@@ -336,7 +331,7 @@ impl InputState for CrosstermInputState {
     fn next_loop(&mut self) -> Result<()> {
         use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
-        let next_events = get_all_next_crossterm_events()?;
+        let next_events = self.take_all_queued_events();
         for event in next_events.iter() {
             match event {
                 // Handle Ctrl-C
