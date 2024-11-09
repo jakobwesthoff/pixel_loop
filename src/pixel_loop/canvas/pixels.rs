@@ -189,9 +189,6 @@ impl RenderableCanvas for PixelsCanvas {
         context.event_loop.run(move |event, _, control_flow| {
             pixel_loop.input_state.handle_new_event(&event);
             match event {
-                Event::LoopDestroyed => {
-                    pixel_loop.finish().context("finish pixel loop").unwrap();
-                }
                 Event::MainEventsCleared => {
                     pixel_loop
                         .next_loop()
@@ -215,6 +212,9 @@ impl RenderableCanvas for PixelsCanvas {
                     }
                     _ => {}
                 },
+                Event::LoopDestroyed => {
+                    pixel_loop.finish().context("finish pixel loop").unwrap();
+                }
                 _ => {}
             }
         });
