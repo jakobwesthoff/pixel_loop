@@ -2,6 +2,8 @@ use std::collections::HashSet;
 
 use winit::event::{Event, VirtualKeyCode};
 
+use crate::NextLoopState;
+
 use super::{InputState, KeyboardKey, KeyboardState};
 
 // Map winit keycodes to our KeyboardKey enum
@@ -186,9 +188,9 @@ impl InputState for PixelsInputState {
         Ok(())
     }
 
-    fn next_loop(&mut self) -> anyhow::Result<()> {
+    fn next_loop(&mut self) -> anyhow::Result<NextLoopState> {
         self.clear_before_next_event = true;
-        Ok(())
+        Ok(NextLoopState::Continue)
     }
 
     fn finish(&mut self) -> anyhow::Result<()> {

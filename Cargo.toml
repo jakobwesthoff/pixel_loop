@@ -1,7 +1,7 @@
 [package]
 name = "pixel_loop"
 authors = ["Jakob Westhoff <jakob@westhoffswelt.de>"]
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "A pixel based drawing engine based on the idea of a self stabilizing update loop."
 license = "MIT"

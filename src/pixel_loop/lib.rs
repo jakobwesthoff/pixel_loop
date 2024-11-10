@@ -33,7 +33,7 @@
 //! };
 //!
 //! // Setup canvas and input
-//! let canvas = CrosstermCanvas::new(80, 24);
+//! let canvas = CrosstermCanvas::new();
 //! let input = CrosstermInputState::new();
 //!
 //! // Update function - called at fixed timestep
@@ -100,12 +100,15 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 /// * `state` - Mutable reference to the game state
 /// * `input` - Reference to the current input state
 /// * `canvas` - Mutable reference to the rendering canvas
+///
+/// # Returns
+/// * `NextLoopState` - Determines if the game loop should continue or exit
 type UpdateFn<State, CanvasImpl> = fn(
     &mut EngineEnvironment,
     &mut State,
     &<CanvasImpl as RenderableCanvas>::Input,
     &mut CanvasImpl,
-) -> Result<()>;
+) -> Result<NextLoopState>;
 
 /// Function type for the render step of the game loop.
 ///
@@ -117,13 +120,16 @@ type UpdateFn<State, CanvasImpl> = fn(
 /// * `input` - Reference to the current input state
 /// * `canvas` - Mutable reference to the rendering canvas
 /// * `dt` - Time elapsed since last render
+///
+/// # Returns
+/// * `NextLoopState` - Determines if the game loop should continue or exit
 type RenderFn<State, CanvasImpl> = fn(
     &mut EngineEnvironment,
     &mut State,
     &<CanvasImpl as RenderableCanvas>::Input,
     &mut CanvasImpl,
     Duration,
-) -> Result<()>;
+) -> Result<NextLoopState>;
 
 /// Global engine state containing shared resources.
 ///
@@ -144,6 +150,14 @@ impl Default for EngineEnvironment {
             rand: Box::new(Xoshiro256PlusPlus::seed_from_u64(micros as u64)),
         }
     }
+}
+
+/// Return type for the next loop state.
+/// Used to determine if the game loop should continue or exit.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum NextLoopState {
+    Continue,
+    Exit(i32),
 }
 
 /// Main game loop handler.
@@ -210,11 +224,12 @@ where
     /// Initializes the game loop.
     pub fn begin(&mut self) -> Result<()> {
         self.input_state.begin()?;
+        self.canvas.begin()?;
         Ok(())
     }
 
     /// Processes the next frame of the game loop.
-    pub fn next_loop(&mut self) -> Result<()> {
+    pub fn next_loop(&mut self) -> Result<NextLoopState> {
         self.last_time = self.current_time;
         self.current_time = Instant::now();
         let mut dt = self.current_time - self.last_time;
@@ -224,32 +239,43 @@ where
         }
 
         while self.accumulator > self.update_timestep {
-            (self.input_state).next_loop()?;
-            (self.update)(
+            let next = (self.input_state).next_loop()?;
+            if let NextLoopState::Exit(..) = next {
+                return Ok(next);
+            };
+
+            let next = (self.update)(
                 &mut self.engine_state,
                 &mut self.state,
                 &self.input_state,
                 &mut self.canvas,
             )?;
+            if let NextLoopState::Exit(..) = next {
+                return Ok(next);
+            };
             self.accumulator -= self.update_timestep;
         }
 
-        (self.render)(
+        let next = (self.render)(
             &mut self.engine_state,
             &mut self.state,
             &self.input_state,
             &mut self.canvas,
             dt,
         )?;
+        if let NextLoopState::Exit(..) = next {
+            return Ok(next);
+        };
 
         self.accumulator += dt;
-        Ok(())
+        Ok(NextLoopState::Continue)
     }
 
     /// Cleans up resources when the game loop ends.
-    pub fn finish(&mut self) -> Result<()> {
+    pub fn finish(&mut self, code: i32) -> Result<()> {
         self.input_state.finish()?;
-        Ok(())
+        self.canvas.finish(code)?;
+        std::process::exit(code);
     }
 }
 

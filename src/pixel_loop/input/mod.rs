@@ -16,6 +16,8 @@ pub use pixels::PixelsInputState;
 
 use anyhow::Result;
 
+use crate::NextLoopState;
+
 /// Represents all possible keyboard keys that can be handled.
 ///
 /// This enum provides a comprehensive list of keyboard keys including:
@@ -292,7 +294,7 @@ pub trait InputState: KeyboardState {
     ///
     /// This method is called at the beginning of each loop iteration, before the
     /// update function is invoked.
-    fn next_loop(&mut self) -> Result<()>;
+    fn next_loop(&mut self) -> Result<NextLoopState>;
 
     /// Finalizes the input state after the loop ends.
     ///

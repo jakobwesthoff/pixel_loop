@@ -244,4 +244,14 @@ pub trait RenderableCanvas: Canvas {
     fn run<State: 'static>(pixel_loop: PixelLoop<State, Self>) -> !
     where
         Self: Sized;
+
+    /// Called before the main loop starts.
+    fn begin(&mut self) -> Result<()> {
+        Ok(())
+    }
+
+    /// Called after the main loop finishes.
+    fn finish(&mut self, code: i32) -> Result<()> {
+        Ok(())
+    }
 }

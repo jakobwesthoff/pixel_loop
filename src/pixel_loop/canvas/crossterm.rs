@@ -359,7 +359,10 @@ impl RenderableCanvas for CrosstermCanvas {
                 pixel_loop.input_state.handle_new_event(event);
             }
 
-            pixel_loop.next_loop().expect("next_loop pixel_loop");
+            let next = pixel_loop.next_loop().expect("next_loop pixel_loop");
+            if let crate::NextLoopState::Exit(code) = next {
+                pixel_loop.finish(code).expect("finish pixel loop");
+            }
             // Track last communicated canvas size
             pixel_loop.canvas.last_loop_width = pixel_loop.canvas.width();
             pixel_loop.canvas.last_loop_height = pixel_loop.canvas.height();
@@ -372,5 +375,15 @@ impl RenderableCanvas for CrosstermCanvas {
         } else {
             None
         }
+    }
+
+    fn begin(&mut self) -> Result<()> {
+        std::io::stdout().execute(crossterm::terminal::EnterAlternateScreen)?;
+        Ok(())
+    }
+
+    fn finish(&mut self, _code: i32) -> Result<()> {
+        std::io::stdout().execute(crossterm::terminal::LeaveAlternateScreen)?;
+        Ok(())
     }
 }

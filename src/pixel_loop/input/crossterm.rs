@@ -4,6 +4,8 @@
 //! It supports both basic and enhanced keyboard input modes depending on terminal
 //! capabilities.
 
+use crate::NextLoopState;
+
 use super::{InputState, KeyboardKey, KeyboardState};
 use anyhow::Result;
 use crossterm::event::{
@@ -176,7 +178,6 @@ fn map_crossterm_keycode_to_pixel_loop(keycode: &crossterm::event::KeyCode) -> O
     }
 }
 
-
 fn decrement_key_ref_counts(hmap: &mut HashMap<KeyboardKey, usize>) -> Vec<KeyboardKey> {
     let mut removed_keys = vec![];
     // Shortcut if our length is 0. We are doing this, as this is mostly the
@@ -328,7 +329,7 @@ impl InputState for CrosstermInputState {
         Ok(())
     }
 
-    fn next_loop(&mut self) -> Result<()> {
+    fn next_loop(&mut self) -> Result<NextLoopState> {
         use crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 
         let next_events = self.take_all_queued_events();
@@ -342,7 +343,7 @@ impl InputState for CrosstermInputState {
                     ..
                 }) => {
                     // SIGINT exitcode
-                    std::process::exit(130);
+                    return Ok(NextLoopState::Exit(130));
                 }
                 _ => {}
             }
@@ -354,7 +355,7 @@ impl InputState for CrosstermInputState {
             self.next_loop_fallback(next_events)?;
         }
 
-        Ok(())
+        Ok(NextLoopState::Continue)
     }
 }
 

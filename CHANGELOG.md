@@ -1,5 +1,15 @@
 # CHANGELOG - pixel_loop
 
+# 0.3.0 - 10.11.2024
+
+- Feature: Implement way to exit the loop cleanly
+
+- Change: Definition of Update and Render functions to support loop exit handling 
+
+- Change: Refactor examples to use new NextLoopState
+
+- Fix: Cleanup terminal state when CrosstermCanvas application is exited.
+
 # 0.2.0 - 10.11.2024
 
 - Fix: Enable `InMemoryCanvas` regardless of `image-load` feature flag

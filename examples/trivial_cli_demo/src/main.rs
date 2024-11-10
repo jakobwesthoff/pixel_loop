@@ -1,8 +1,8 @@
 use anyhow::Result;
 use pixel_loop::canvas::{Canvas, CrosstermCanvas, RenderableCanvas};
-use pixel_loop::color::*;
 use pixel_loop::input::{CrosstermInputState, KeyboardKey, KeyboardState};
 use pixel_loop::rand::Rng;
+use pixel_loop::{color::*, NextLoopState};
 
 struct Box {
     box_position: (i64, i64),
@@ -79,7 +79,7 @@ fn main() -> Result<()> {
             let height = canvas.height();
 
             if input.is_key_pressed(KeyboardKey::Q) {
-                std::process::exit(0);
+                return Ok(NextLoopState::Exit(0));
             }
 
             if input.is_key_pressed(KeyboardKey::Space) {
@@ -125,7 +125,7 @@ fn main() -> Result<()> {
                 b.box_direction = (dx, dy);
             }
 
-            Ok(())
+            Ok(NextLoopState::Continue)
         },
         |e, s, i, canvas, dt| {
             // RENDER BEGIN
@@ -166,7 +166,7 @@ fn main() -> Result<()> {
 
             canvas.render()?;
 
-            Ok(())
+            Ok(NextLoopState::Continue)
         },
     );
 }

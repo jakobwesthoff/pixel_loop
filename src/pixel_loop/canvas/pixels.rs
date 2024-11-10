@@ -7,6 +7,7 @@
 use super::{Canvas, RenderableCanvas};
 use crate::color::{Color, ColorAsByteSlice};
 use crate::input::PixelsInputState;
+use crate::NextLoopState;
 use anyhow::{Context, Result};
 use pixels::{Pixels, SurfaceTexture};
 use std::ops::Range;
@@ -192,14 +193,20 @@ impl RenderableCanvas for PixelsCanvas {
         let context = pixel_loop.canvas.take_context();
 
         pixel_loop.begin().context("initialize pixel_loop").unwrap();
+        let mut exit_code = 0i32;
         context.event_loop.run(move |event, _, control_flow| {
             pixel_loop.input_state.handle_new_event(&event);
             match event {
                 Event::MainEventsCleared => {
-                    pixel_loop
+                    let next = pixel_loop
                         .next_loop()
                         .context("run next pixel loop")
                         .unwrap();
+                    if let NextLoopState::Exit(code) = next {
+                        exit_code = code;
+                        *control_flow = ControlFlow::Exit;
+                        return;
+                    }
                     // Track last communicated canvas size
                     pixel_loop.canvas.last_loop_width = pixel_loop.canvas.width();
                     pixel_loop.canvas.last_loop_height = pixel_loop.canvas.height();
@@ -217,12 +224,17 @@ impl RenderableCanvas for PixelsCanvas {
                         );
                     }
                     WindowEvent::CloseRequested => {
+                        exit_code = 0;
                         *control_flow = ControlFlow::Exit;
+                        return;
                     }
                     _ => {}
                 },
                 Event::LoopDestroyed => {
-                    pixel_loop.finish().context("finish pixel loop").unwrap();
+                    pixel_loop
+                        .finish(exit_code)
+                        .context("finish pixel loop")
+                        .unwrap();
                 }
                 _ => {}
             }

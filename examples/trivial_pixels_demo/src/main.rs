@@ -3,6 +3,7 @@ use pixel_loop::canvas::{Canvas, PixelsCanvas, RenderableCanvas};
 use pixel_loop::color::Color;
 use pixel_loop::input::{KeyboardKey, KeyboardState, PixelsInputState};
 use pixel_loop::rand::Rng;
+use pixel_loop::NextLoopState;
 
 struct FlyingBox {
     x: i64,
@@ -69,7 +70,7 @@ fn main() -> Result<()> {
                 s.flying_box.y += s.flying_box.speed_y;
             }
 
-            Ok(())
+            Ok(NextLoopState::Continue)
         },
         |e, s, i, canvas, dt| {
             let width = canvas.width();
@@ -88,7 +89,7 @@ fn main() -> Result<()> {
 
             canvas.render()?;
 
-            Ok(())
+            Ok(NextLoopState::Continue)
         },
     );
 }
