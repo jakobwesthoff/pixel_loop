@@ -42,6 +42,10 @@ pub struct PixelsCanvas {
     context: Option<WinitContext>,
     /// The underlying pixels instance for window rendering
     pixels: Pixels,
+    /// The width of this canvas during the last loop
+    last_loop_width: u32,
+    /// The height of this canvas during the last loop
+    last_loop_height: u32,
 }
 
 impl PixelsCanvas {
@@ -105,6 +109,8 @@ impl PixelsCanvas {
             user_scale_factor: scale_factor.unwrap_or(1),
             context: Some(context),
             pixels,
+            last_loop_height: 0, // Zero initialized to cause initial update
+            last_loop_width: 0,  // Zero initialized to cause initial update
         })
     }
 }
@@ -157,7 +163,7 @@ impl RenderableCanvas for PixelsCanvas {
         Ok(())
     }
 
-    fn surface_resized(&mut self, width: u32, height: u32, window_scale_factor: Option<f64>) {
+    fn resize_surface(&mut self, width: u32, height: u32, window_scale_factor: Option<f64>) {
         self.pixels
             .resize_surface(width, height)
             .expect("to be able to resize surface");
@@ -194,6 +200,9 @@ impl RenderableCanvas for PixelsCanvas {
                         .next_loop()
                         .context("run next pixel loop")
                         .unwrap();
+                    // Track last communicated canvas size
+                    pixel_loop.canvas.last_loop_width = pixel_loop.canvas.width();
+                    pixel_loop.canvas.last_loop_height = pixel_loop.canvas.height();
                 }
                 Event::WindowEvent {
                     event: win_event, ..
@@ -201,7 +210,7 @@ impl RenderableCanvas for PixelsCanvas {
                     // Handle window resize events and correct buffer and
                     // surface sizes
                     WindowEvent::Resized(physical_size) => {
-                        pixel_loop.canvas.surface_resized(
+                        pixel_loop.canvas.resize_surface(
                             physical_size.width,
                             physical_size.height,
                             Some(context.window.scale_factor()),
@@ -218,5 +227,13 @@ impl RenderableCanvas for PixelsCanvas {
                 _ => {}
             }
         });
+    }
+
+    fn did_resize(&self) -> Option<(u32, u32)> {
+        if self.last_loop_width != self.width() || self.last_loop_height != self.height() {
+            Some((self.width(), self.height()))
+        } else {
+            None
+        }
     }
 }

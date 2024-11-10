@@ -220,7 +220,13 @@ pub trait RenderableCanvas: Canvas {
     /// The optional scale factor is the ratio of the  physical dimensions
     /// supplied to the logical size of the surface based on the current
     /// rendering setup of the target system.
-    fn surface_resized(&mut self, width: u32, height: u32, scale_factor: Option<f64>);
+    fn resize_surface(&mut self, width: u32, height: u32, scale_factor: Option<f64>);
+
+    // @TODO: Could this be generally handled/state set somehow within next_loop?
+    /// Can be asked in an update loop, to check if the canvas resized since the last update loop.
+    ///
+    /// If it resized the new size is returned as a tuple. Otherwise None is returned.
+    fn did_resize(&self) -> Option<(u32, u32)>;
 
     /// Main run loop for a pixel loop that renders to this canvas.
     ///

@@ -53,6 +53,10 @@ pub struct CrosstermCanvas {
     frame_limit_nanos: u64,
     /// Timestamp of the last rendered frame
     last_frame_time: Instant,
+    /// The width of this canvas during the last loop
+    last_loop_width: u32,
+    /// The height of this canvas during the last loop
+    last_loop_height: u32,
 }
 
 impl CrosstermCanvas {
@@ -95,8 +99,10 @@ impl CrosstermCanvas {
             previous_buffer: vec![],
             frame_limit_nanos: 1_000_000_000 / 60,
             last_frame_time: Instant::now(),
+            last_loop_height: 0, // Zero initialized to cause initial update
+            last_loop_width: 0,  // Zero initialized to cause initial update
         };
-        canvas.surface_resized(width, height, None);
+        canvas.resize_surface(width, height, None);
         canvas
     }
 
@@ -315,7 +321,7 @@ impl RenderableCanvas for CrosstermCanvas {
         Ok(())
     }
 
-    fn surface_resized(&mut self, width: u32, height: u32, scale_factor: Option<f64>) {
+    fn resize_surface(&mut self, width: u32, height: u32, scale_factor: Option<f64>) {
         self.width = width;
         self.height = height;
         self.buffer = vec![Color::from_rgb(0, 0, 0); width as usize * height as usize];
@@ -346,7 +352,7 @@ impl RenderableCanvas for CrosstermCanvas {
                 if let Event::Resize(columns, rows) = event {
                     pixel_loop
                         .canvas
-                        .surface_resized(columns as u32, rows as u32 * 2, None);
+                        .resize_surface(columns as u32, rows as u32 * 2, None);
                 }
 
                 // Move elements to input state handler
@@ -354,6 +360,17 @@ impl RenderableCanvas for CrosstermCanvas {
             }
 
             pixel_loop.next_loop().expect("next_loop pixel_loop");
+            // Track last communicated canvas size
+            pixel_loop.canvas.last_loop_width = pixel_loop.canvas.width();
+            pixel_loop.canvas.last_loop_height = pixel_loop.canvas.height();
+        }
+    }
+
+    fn did_resize(&self) -> Option<(u32, u32)> {
+        if self.last_loop_width != self.width() || self.last_loop_height != self.height() {
+            Some((self.width(), self.height()))
+        } else {
+            None
         }
     }
 }
